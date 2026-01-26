@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
+import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import { SAMPLE_PRODUCTS, CATEGORIES } from '../utils/constants';
 
 const Landing = () => {
@@ -8,14 +9,23 @@ const Landing = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true); // Added loading state
 
   useEffect(() => {
-    // In a real app, fetch from API
-    setProducts(SAMPLE_PRODUCTS);
-    setFilteredProducts(SAMPLE_PRODUCTS);
+    // Simulate API fetch delay
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setProducts(SAMPLE_PRODUCTS);
+      setFilteredProducts(SAMPLE_PRODUCTS);
+      setLoading(false);
+    }, 1500); // Simulate 1.5 second loading time
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    if (loading) return; // Do not filter if still loading
+
     let filtered = products;
 
     if (selectedCategory !== 'All') {
@@ -30,33 +40,33 @@ const Landing = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, searchTerm]);
+  }, [products, selectedCategory, searchTerm, loading]); // Added loading to dependency array
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <motion.section
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="bg-gradient-to-r from-primary-indigo to-electric-blue text-white py-20"
+        className="bg-gradient-to-r from-primary to-electric-blue text-white py-12 md:py-20 lg:py-24"
       >
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
             Welcome to eStore
           </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 max-w-2xl mx-auto px-2">
             Discover amazing products at unbeatable prices. Shop with confidence and enjoy fast, reliable delivery.
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="bg-accent-orange text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-orange-600 transition-colors"
+            className="bg-accent text-white px-8 py-3 md:py-4 rounded-full text-lg font-semibold hover:opacity-90 transition-opacity shadow-lg min-h-[44px]"
           >
             Shop Now
           </motion.button>
         </div>
-      </motion.section>
+      </motion.div>
 
       {/* Search and Filter Section */}
       <section className="py-8 bg-white shadow-sm">
@@ -67,11 +77,10 @@ const Landing = () => {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === category
-                      ? 'bg-primary-indigo text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === category
+                    ? 'bg-primary-indigo text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
                   {category}
                 </button>
@@ -91,18 +100,24 @@ const Landing = () => {
       </section>
 
       {/* Products Grid */}
-      <section className="py-12">
+      <section className="py-8 md:py-16">
         <div className="container mx-auto px-4">
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-3xl font-bold text-center text-gray-800 mb-8"
+            className="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-8 md:mb-12"
           >
             Featured Products
           </motion.h2>
 
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+              {[...Array(8)].map((_, index) => (
+                <ProductCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 text-lg">No products found matching your criteria.</p>
             </div>
@@ -111,7 +126,7 @@ const Landing = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8"
             >
               {filteredProducts.map((product, index) => (
                 <motion.div

@@ -20,6 +20,18 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Verify token and get user info
+      // Mock user restore
+      const mockUser = {
+        _id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        role: 'user'
+      };
+      setUser(mockUser);
+      setLoading(false);
+
+      /* 
+      // Original API call
       axios.get('/api/auth/me')
         .then(response => {
           setUser(response.data);
@@ -29,35 +41,50 @@ export const AuthProvider = ({ children }) => {
           delete axios.defaults.headers.common['Authorization'];
         })
         .finally(() => setLoading(false));
+      */
     } else {
       setLoading(false);
     }
   }, []);
 
   const login = async (email, password) => {
-    try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(user);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Login failed' };
-    }
+    // Simulate API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockUser = {
+          _id: '1',
+          name: 'Test User',
+          email: email,
+          role: 'user'
+        };
+        const mockToken = 'mock-jwt-token';
+
+        localStorage.setItem('token', mockToken);
+        // axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
+        setUser(mockUser);
+        resolve({ success: true });
+      }, 1000);
+    });
   };
 
   const register = async (name, email, password) => {
-    try {
-      const response = await axios.post('/api/auth/register', { name, email, password });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(user);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
-    }
+    // Simulate API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockUser = {
+          _id: '1',
+          name: name,
+          email: email,
+          role: 'user'
+        };
+        const mockToken = 'mock-jwt-token';
+
+        localStorage.setItem('token', mockToken);
+        // axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
+        setUser(mockUser);
+        resolve({ success: true });
+      }, 1000);
+    });
   };
 
   const logout = () => {

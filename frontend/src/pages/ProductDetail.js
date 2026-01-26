@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
+import { ProductDetailSkeleton } from '../components/SkeletonLoader';
 import { SAMPLE_PRODUCTS } from '../utils/constants';
 
 const ProductDetail = () => {
@@ -14,11 +15,16 @@ const ProductDetail = () => {
 
   useEffect(() => {
     // In a real app, fetch from API
-    const foundProduct = SAMPLE_PRODUCTS.find(p => p._id === id);
-    if (foundProduct) {
-      setProduct(foundProduct);
-    }
-    setLoading(false);
+    // Simulate delay
+    const timer = setTimeout(() => {
+      const foundProduct = SAMPLE_PRODUCTS.find(p => p._id === id);
+      if (foundProduct) {
+        setProduct(foundProduct);
+      }
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [id]);
 
   const handleAddToCart = () => {
@@ -30,13 +36,9 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center justify-center min-h-screen"
-      >
-        <p className="text-lg text-gray-500">Loading...</p>
-      </motion.div>
+      <div className="container mx-auto px-4 py-8">
+        <ProductDetailSkeleton />
+      </div>
     );
   }
 
@@ -50,7 +52,7 @@ const ProductDetail = () => {
         <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
         <button
           onClick={() => navigate('/')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
         >
           Back to Home
         </button>
@@ -66,12 +68,12 @@ const ProductDetail = () => {
     >
       <button
         onClick={() => navigate('/')}
-        className="text-blue-600 hover:text-blue-800 mb-4"
+        className="text-primary hover:text-primary-dark mb-4 font-medium"
       >
         ← Back to Products
       </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {/* Product Image */}
         <motion.div
           whileHover={{ scale: 1.02 }}
@@ -80,16 +82,16 @@ const ProductDetail = () => {
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-96 object-cover"
+            className="w-full h-auto aspect-square object-cover"
           />
         </motion.div>
 
         {/* Product Details */}
         <div className="space-y-6">
-          <h1 className="text-4xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">{product.name}</h1>
 
           <div className="flex items-center space-x-4">
-            <span className="text-3xl font-bold text-blue-600">${product.price}</span>
+            <span className="text-2xl md:text-3xl font-bold text-primary">${product.price}</span>
             <span className="text-sm text-gray-500">SKU: {product._id}</span>
           </div>
 
@@ -103,20 +105,20 @@ const ProductDetail = () => {
             <p className="text-gray-600">Stock: {product.stock} available</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4">
             <div className="flex items-center space-x-4">
               <label className="font-bold text-gray-700">Quantity:</label>
               <div className="flex items-center space-x-2 border rounded-lg">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100"
+                  className="px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 touch-manipulation"
                 >
                   −
                 </button>
-                <span className="px-4 py-2 font-bold">{quantity}</span>
+                <span className="px-4 py-2 font-bold min-w-[3ch] text-center">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100"
+                  className="px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 touch-manipulation"
                 >
                   +
                 </button>
@@ -127,7 +129,7 @@ const ProductDetail = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
-              className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full bg-primary text-white font-bold py-3 md:py-4 rounded-lg hover:opacity-90 transition-opacity min-h-[48px] shadow-md"
             >
               Add to Cart
             </motion.button>
@@ -135,7 +137,7 @@ const ProductDetail = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full border-2 border-blue-600 text-blue-600 font-bold py-3 rounded-lg hover:bg-blue-50 transition-colors"
+              className="w-full border-2 border-primary text-primary font-bold py-3 md:py-4 rounded-lg hover:bg-blue-50 transition-colors min-h-[48px]"
             >
               Buy Now
             </motion.button>
