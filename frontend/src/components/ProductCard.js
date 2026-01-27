@@ -39,12 +39,12 @@ const ProductCard = ({ product }) => {
             {product.description}
           </p>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl font-bold text-primary-indigo">
+            <span className="text-xl md:text-2xl font-bold text-primary">
               ${product.price.toFixed(2)}
             </span>
             <div className="flex items-center">
-              <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              <svg className="w-4 h-4 text-warning fill-current" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <span className="text-sm text-gray-600 ml-1">
                 {product.rating} ({product.reviews})
@@ -57,11 +57,10 @@ const ProductCard = ({ product }) => {
         <button
           onClick={handleAddToCart}
           disabled={!product.inStock}
-          className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-            product.inStock
-              ? 'bg-primary-indigo text-white hover:bg-electric-blue'
+          className={`w-full py-2 px-4 rounded-md font-medium transition-colors min-h-[44px] ${product.inStock
+              ? 'bg-primary text-white hover:bg-opacity-90'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
+            }`}
         >
           {product.inStock ? 'Add to Cart' : 'Out of Stock'}
         </button>
