@@ -2,23 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import CartItem from '../components/CartItem';
 import { CartItemSkeleton } from '../components/SkeletonLoader';
 
 const Cart = () => {
   const { isAuthenticated } = useAuth();
-  const [cartItems, setCartItems] = React.useState([]);
+  const { cart, getCartTotal } = useCart();
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (isAuthenticated) {
-      // Simulate API fetch
-      const timer = setTimeout(() => {
-        // Mock data fetch
-        setLoading(false);
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated]);
+    // Simulate loading delay for better UX demo
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -49,7 +48,7 @@ const Cart = () => {
             <CartItemSkeleton key={i} />
           ))}
         </div>
-      ) : cartItems.length === 0 ? (
+      ) : cart.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg mb-6">Your cart is empty</p>
           <Link to="/" className="text-primary hover:text-primary-dark font-semibold text-lg">
@@ -57,23 +56,41 @@ const Cart = () => {
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-          <div className="space-y-4">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 gap-2">
-                <span className="font-medium text-lg">{item.name}</span>
-                <span className="font-bold text-primary text-xl">${item.price}</span>
-              </div>
-            ))}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Cart Items List */}
+          <div className="flex-1 bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <div className="space-y-4">
+              {cart.map((item) => (
+                <CartItem key={item._id} item={item} />
+              ))}
+            </div>
           </div>
-          <Link to="/checkout" className="mt-8 bg-primary text-white w-full py-4 rounded-lg hover:opacity-90 transition-opacity block text-center font-bold text-lg min-h-[48px] shadow-md">
-            Proceed to Checkout
-          </Link>
+
+          {/* Order Summary Sidebar */}
+          <div className="lg:w-1/3">
+            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24">
+              <h2 className="text-xl font-bold mb-4 border-b pb-4">Order Summary</h2>
+              <div className="flex justify-between mb-2 text-gray-600">
+                <span>Subtotal</span>
+                <span>${getCartTotal().toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between mb-4 text-gray-600">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+              <div className="flex justify-between mb-6 text-xl font-bold text-gray-900 border-t pt-4">
+                <span>Total</span>
+                <span>${getCartTotal().toFixed(2)}</span>
+              </div>
+              <Link to="/checkout" className="bg-primary text-white w-full py-4 rounded-lg hover:opacity-90 transition-opacity block text-center font-bold text-lg shadow-md">
+                Proceed to Checkout
+              </Link>
+            </div>
+          </div>
         </div>
       )}
     </motion.div>
   );
 };
-
 
 export default Cart;
