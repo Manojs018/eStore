@@ -52,6 +52,17 @@ jest.mock('../contexts/CartContext', () => ({
   CartProvider: ({ children }) => <div>{children}</div>
 }));
 
+jest.mock('../contexts/WishlistContext', () => ({
+  WishlistContext: {},
+  useWishlist: () => ({
+    wishlist: [],
+    addToWishlist: jest.fn(),
+    removeFromWishlist: jest.fn(),
+    isInWishlist: jest.fn(() => false)
+  }),
+  WishlistProvider: ({ children }) => <div>{children}</div>
+}));
+
 describe('ProductCard Component', () => {
   const mockProduct = {
     _id: '1',

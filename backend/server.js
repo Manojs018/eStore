@@ -39,6 +39,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/wishlist', require('./routes/wishlist'));
+app.use('/api/payment', require('./routes/payment'));
 
 // 404 handler
 app.use('*', (req, res) => {

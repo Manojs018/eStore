@@ -43,9 +43,16 @@ const CheckoutFormContent = () => {
 
     const cardElement = elements.getElement(CardElement);
 
+    // Basic validation
+    if (!shippingInfo.address || !shippingInfo.city || !shippingInfo.zipCode || !shippingInfo.country) {
+      setError('Please fill in all shipping fields');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Create payment intent on backend
-      const response = await fetch('/api/create-payment-intent', {
+      const response = await fetch('/api/payment/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,27 +65,48 @@ const CheckoutFormContent = () => {
         })
       });
 
-      const { clientSecret } = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to initialize payment');
+      }
 
-      // Confirm payment
-      const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: user.name,
-            email: user.email
+      const { clientSecret, mock } = await response.json();
+
+      let paymentResult;
+
+      if (mock) {
+        // Simulation for development without Stripe keys
+        console.warn('Using MOCK payment flow');
+        await new Promise(r => setTimeout(r, 1500)); // Simulate processing
+        paymentResult = { paymentIntent: { status: 'succeeded' } };
+      } else {
+        const result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: user.name,
+              email: user.email,
+              address: {
+                line1: shippingInfo.address,
+                city: shippingInfo.city,
+                postal_code: shippingInfo.zipCode,
+                country: shippingInfo.country,
+              }
+            }
           }
-        }
-      });
+        });
+        paymentResult = result;
+      }
+
+      const { paymentIntent, error: stripeError } = paymentResult;
 
       if (stripeError) {
         setError(stripeError.message);
-      } else {
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         clearCart();
         navigate('/orders');
       }
     } catch (err) {
-      setError('Payment failed. Please try again.');
+      setError(err.message || 'Payment failed. Please try again.');
     }
 
     setLoading(false);
