@@ -29,7 +29,7 @@ const products = [
     price: 5.00,
     category: 'components',
     stock: 100,
-    imageUrl: 'https://example.com/resistor.jpg'
+    imageUrl: 'https://images.unsplash.com/photo-1580983218765-f663bec07b37?w=500&auto=format&fit=crop&q=60'
   },
   {
     name: 'Capacitor',
@@ -37,7 +37,7 @@ const products = [
     price: 10.00,
     category: 'components',
     stock: 75,
-    imageUrl: 'https://example.com/capacitor.jpg'
+    imageUrl: 'https://images.unsplash.com/photo-1563770095-39d468f9a51d?w=500&auto=format&fit=crop&q=60'
   },
   {
     name: 'Arduino Board',
@@ -45,7 +45,7 @@ const products = [
     price: 25.00,
     category: 'electronics',
     stock: 50,
-    imageUrl: 'https://example.com/arduino.jpg'
+    imageUrl: 'https://images.unsplash.com/photo-1553406830-ef2513450d76?w=500&auto=format&fit=crop&q=60'
   }
 ];
 
