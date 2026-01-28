@@ -19,11 +19,16 @@ const ProductCard = ({ product }) => {
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
     >
       <Link to={`/product/${product._id}`}>
-        <div className="relative">
+        <div className="relative overflow-hidden bg-gray-100">
           <img
-            src={product.image}
+            src={product.imageUrl || product.image || 'https://via.placeholder.com/400x300?text=No+Image'}
             alt={product.name}
-            className="w-full h-48 object-cover"
+            loading="lazy"
+            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
+            }}
           />
           {!product.inStock && (
             <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm">
@@ -58,8 +63,8 @@ const ProductCard = ({ product }) => {
           onClick={handleAddToCart}
           disabled={!product.inStock}
           className={`w-full py-2 px-4 rounded-md font-medium transition-colors min-h-[44px] ${product.inStock
-              ? 'bg-primary text-white hover:bg-opacity-90'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            ? 'bg-primary text-white hover:bg-opacity-90'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
         >
           {product.inStock ? 'Add to Cart' : 'Out of Stock'}

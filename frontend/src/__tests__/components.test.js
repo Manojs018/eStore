@@ -54,7 +54,7 @@ describe('ProductCard Component', () => {
     _id: '1',
     name: 'Test Product',
     price: 29.99,
-    image: 'https://via.placeholder.com/300',
+    imageUrl: 'https://via.placeholder.com/300',
     category: 'Electronics',
     description: 'Test Description',
     inStock: true
@@ -67,11 +67,12 @@ describe('ProductCard Component', () => {
     expect(screen.getByText(/29.99/)).toBeInTheDocument();
   });
 
-  it('should display product image', () => {
+  it('should display product image with lazy loading', () => {
     renderWithProviders(<ProductCard product={mockProduct} />);
 
     const image = screen.getByAltText('Test Product');
-    expect(image).toHaveAttribute('src', mockProduct.image);
+    expect(image).toHaveAttribute('src', mockProduct.imageUrl);
+    expect(image).toHaveAttribute('loading', 'lazy');
   });
 
   it('should have add to cart button', () => {
