@@ -13,6 +13,7 @@ import Orders from './pages/Orders';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Admin from './pages/Admin';
+import NotFound from './pages/NotFound';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
@@ -53,7 +54,7 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/admin" element={<Admin />} />
-                  <Route path="*" element={<Navigate to="/" />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />
