@@ -35,6 +35,16 @@ const productSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  averageRating: {
+    type: Number,
+    min: [1, 'Rating must be at least 1'],
+    max: [5, 'Rating must can not be more than 5'],
+    default: 0
+  },
+  numOfReviews: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

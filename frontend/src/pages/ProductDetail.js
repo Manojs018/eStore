@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import { ProductDetailSkeleton } from '../components/SkeletonLoader';
 import { SAMPLE_PRODUCTS } from '../utils/constants';
+import ReviewList from '../components/ReviewList';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -144,6 +145,9 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Review Section */}
+      <ReviewList productId={id} />
     </motion.div>
   );
 };
