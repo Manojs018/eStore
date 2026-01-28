@@ -4,6 +4,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import '@testing-library/jest-dom';
 
 // Mock framer-motion
@@ -126,5 +127,37 @@ describe('Header Component', () => {
     renderWithProviders(<Header />);
     expect(screen.getByText('Log in')).toBeInTheDocument();
     expect(screen.getByText('Sign up')).toBeInTheDocument();
+  });
+});
+
+describe('Footer Component', () => {
+  it('should render company section', () => {
+    renderWithProviders(<Footer />);
+    expect(screen.getByText('eStore')).toBeInTheDocument();
+    // Use partial match string or regex for long text
+    expect(screen.getByText('Your premium destination', { exact: false })).toBeInTheDocument();
+  });
+
+  it('should render shop categories', () => {
+    renderWithProviders(<Footer />);
+    expect(screen.getByText('Electronics')).toBeInTheDocument();
+    expect(screen.getByText('Clothing')).toBeInTheDocument();
+  });
+
+  it('should render customer service links', () => {
+    renderWithProviders(<Footer />);
+    expect(screen.getByText('Contact Us')).toBeInTheDocument();
+    expect(screen.getByText('FAQ')).toBeInTheDocument();
+  });
+
+  it('should handle newsletter subscription', () => {
+    renderWithProviders(<Footer />);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
+    const subscribeBtn = screen.getByText('Subscribe');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.click(subscribeBtn);
+
+    expect(screen.getByText('Thanks for subscribing!')).toBeInTheDocument();
   });
 });
