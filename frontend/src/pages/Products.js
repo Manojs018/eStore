@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
+import CategoryFilter from '../components/CategoryFilter';
 import { SAMPLE_PRODUCTS, CATEGORIES } from '../utils/constants'; // Using sample data for now
 
 const SORT_OPTIONS = [
@@ -104,30 +105,17 @@ const Products = () => {
                     <h2 className="text-xl font-bold mb-6 text-gray-800">Filters</h2>
 
                     {/* Categories */}
-                    <div className="mb-8">
-                        <h3 className="font-semibold mb-3 text-gray-700">Categories</h3>
-                        <div className="space-y-2">
-                            {CATEGORIES.map(category => (
-                                <label key={category} className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="category"
-                                        checked={selectedCategory === category}
-                                        onChange={() => setSelectedCategory(category)}
-                                        className="form-radio text-primary focus:ring-primary h-4 w-4"
-                                    />
-                                    <span className={`text-sm ${selectedCategory === category ? 'text-primary font-medium' : 'text-gray-600'}`}>
-                                        {category}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
+                    <CategoryFilter
+                        categories={CATEGORIES}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={setSelectedCategory}
+                        products={products}
+                    />
 
                     {/* Price Range (Mock) - Could use a slider library later */}
                     {/* <div className="mb-8">
             <h3 className="font-semibold mb-3 text-gray-700">Price Range</h3>
-             <input type="range" ... />
+              <input type="range" ... />
           </div> */}
 
                     <button
@@ -219,8 +207,8 @@ const Products = () => {
                                     key={i + 1}
                                     onClick={() => handlePageChange(i + 1)}
                                     className={`px-4 py-2 border rounded-md text-sm font-medium ${currentPage === i + 1
-                                            ? 'bg-primary text-white border-primary'
-                                            : 'border-gray-300 hover:bg-gray-50 bg-white text-gray-700'
+                                        ? 'bg-primary text-white border-primary'
+                                        : 'border-gray-300 hover:bg-gray-50 bg-white text-gray-700'
                                         }`}
                                 >
                                     {i + 1}

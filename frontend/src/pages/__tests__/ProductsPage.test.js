@@ -66,8 +66,11 @@ describe('Products Page', () => {
         await waitFor(() => screen.getAllByTestId('product-card'), { timeout: 1500 });
 
         // Click on a category filter, e.g., Electronics (assuming it exists in constants)
-        const categoryRadio = screen.getByLabelText('Electronics');
-        fireEvent.click(categoryRadio);
+        // We find the element containing 'Electronics'. There might be multiple (select option + button span)
+        // We want to click the one that triggers the action.
+        const categoryElements = screen.getAllByText('Electronics');
+        // The desktop button span is clickable.
+        fireEvent.click(categoryElements[0]);
 
         // Verify filter logic (ProductCard should be filtered)
         // Use waitFor as setFilteredProducts is async
