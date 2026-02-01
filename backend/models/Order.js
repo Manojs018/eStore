@@ -57,13 +57,30 @@ const orderSchema = new mongoose.Schema({
   },
   stripePaymentIntentId: {
     type: String
+  },
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['processing', 'shipped', 'delivered', 'cancelled'],
+      required: true
+    },
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    comment: String
+  }],
+  trackingInfo: {
+    carrier: String,
+    trackingNumber: String,
+    trackingUrl: String
   }
 }, {
   timestamps: true
 });
 
 // Calculate total amount before saving
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', function (next) {
   if (this.items && this.items.length > 0) {
     this.totalAmount = this.items.reduce((total, item) => {
       return total + (item.price * item.quantity);

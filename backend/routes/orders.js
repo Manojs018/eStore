@@ -178,7 +178,12 @@ router.post('/confirm-payment', auth, [
       shippingAddress,
       paymentIntentId,
       paymentStatus: 'paid',
-      stripePaymentIntentId: paymentIntentId
+      stripePaymentIntentId: paymentIntentId,
+      statusHistory: [{
+        status: 'processing',
+        date: new Date(),
+        comment: 'Order placed successfully'
+      }]
     });
 
     // Send email notification to admin
@@ -297,23 +302,30 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// @desc    Get all orders (Admin only)
+// @desc    Get orders (User specific or all for Admin)
 // @route   GET /api/orders
-// @access  Private/Admin
-router.get('/', auth, admin, async (req, res) => {
+// @access  Private
+router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const orders = await Order.find()
+    let query = {};
+
+    // If user is not admin, only show their own orders
+    if (req.user.role !== 'admin') {
+      query.user = req.user._id;
+    }
+
+    const orders = await Order.find(query)
       .populate('user', 'name email')
       .populate('items.product', 'name imageUrl')
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip);
 
-    const total = await Order.countDocuments();
+    const total = await Order.countDocuments(query);
 
     res.json({
       success: true,

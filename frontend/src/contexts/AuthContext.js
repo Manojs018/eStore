@@ -20,72 +20,57 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Verify token and get user info
-      // Mock user restore
-      const mockUser = {
-        _id: '1',
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'user'
-      };
-      setUser(mockUser);
-      setLoading(false);
-
-      /* 
-      // Original API call
-      axios.get('/api/auth/me')
+      axios.get('/api/auth/profile')
         .then(response => {
-          setUser(response.data);
+          if (response.data.success) {
+            setUser(response.data.data);
+          }
         })
         .catch(() => {
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
         })
         .finally(() => setLoading(false));
-      */
     } else {
       setLoading(false);
     }
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          _id: '1',
-          name: 'Test User',
-          email: email,
-          role: 'user'
-        };
-        const mockToken = 'mock-jwt-token';
-
-        localStorage.setItem('token', mockToken);
-        // axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
-        setUser(mockUser);
-        resolve({ success: true });
-      }, 1000);
-    });
+    try {
+      const response = await axios.post('/api/auth/login', { email, password });
+      if (response.data.success) {
+        const { token, user } = response.data.data;
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+        toast.success('Login successful!');
+        return { success: true };
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Login failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
   };
 
   const register = async (name, email, password) => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          _id: '1',
-          name: name,
-          email: email,
-          role: 'user'
-        };
-        const mockToken = 'mock-jwt-token';
-
-        localStorage.setItem('token', mockToken);
-        // axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
-        setUser(mockUser);
-        resolve({ success: true });
-      }, 1000);
-    });
+    try {
+      const response = await axios.post('/api/auth/register', { name, email, password });
+      if (response.data.success) {
+        const { token, user } = response.data.data;
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+        toast.success('Registration successful!');
+        return { success: true };
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Registration failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
   };
 
   const logout = () => {
@@ -100,7 +85,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    loading
+    loading,
+    isAuthenticated: !!user
   };
 
   return (
