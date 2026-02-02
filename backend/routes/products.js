@@ -54,6 +54,93 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @desc    Filter products with advanced options
+// @route   GET /api/products/filter
+// @access  Public
+router.get('/filter', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Filters
+    const { category, minPrice, maxPrice, rating, sort } = req.query;
+
+    let query = {
+      isActive: true,
+      isDeleted: false
+    };
+
+    // Category Filter
+    if (category) {
+      query.category = category;
+    }
+
+    // Price Filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Rating Filter
+    if (rating) {
+      query.averageRating = { $gte: Number(rating) };
+    }
+
+    // Sort
+    let sortOption = { createdAt: -1 }; // Default newest
+    if (sort) {
+      if (sort === 'price-asc') sortOption = { price: 1 };
+      else if (sort === 'price-desc') sortOption = { price: -1 };
+      else if (sort === 'rating') sortOption = { averageRating: -1 };
+    }
+
+    const products = await Product.find(query)
+      .sort(sortOption)
+      .limit(limit)
+      .skip(skip);
+
+    const total = await Product.countDocuments(query);
+
+    // Facets (Category counts)
+    // We match the query *without* the category filter to show all available categories for current price/rating range
+    const facetQuery = { ...query };
+    delete facetQuery.category;
+
+    const categoryFacets = await Product.aggregate([
+      { $match: facetQuery },
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]);
+
+    const facets = {
+      categories: categoryFacets.reduce((acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      }, {})
+    };
+
+    res.json({
+      success: true,
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      facets
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 // @desc    Get single product
 // @route   GET /api/products/:id
 // @access  Public
