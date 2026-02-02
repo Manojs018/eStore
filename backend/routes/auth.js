@@ -132,6 +132,25 @@ router.post('/login', [
   }
 });
 
+// @desc    Get current user (alias for profile)
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
 // @desc    Get current user profile
 // @route   GET /api/auth/profile
 // @access  Private
