@@ -4,7 +4,9 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const TokenBlacklist = require('../models/TokenBlacklist');
+const RefreshToken = require('../models/RefreshToken');
 const sendEmail = require('../utils/sendEmail');
+const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
 const router = express.Router();
 
@@ -45,17 +47,17 @@ router.post('/register', [
       password
     });
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRE || '30d'
-    });
+    // Generate Tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, req.ip);
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
         user,
-        token
+        token: accessToken,
+        refreshToken: refreshToken.token
       }
     });
   } catch (error) {
@@ -113,17 +115,17 @@ router.post('/login', [
       });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRE || '30d'
-    });
+    // Generate Tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, req.ip);
 
     res.json({
       success: true,
       message: 'Login successful',
       data: {
         user,
-        token
+        token: accessToken,
+        refreshToken: refreshToken.token
       }
     });
   } catch (error) {
@@ -150,6 +152,63 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
       success: true,
       message: 'Logged out successfully'
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// @desc    Refresh Token
+// @route   POST /api/auth/refresh
+// @access  Public
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Token is required' });
+    }
+
+    const token = await RefreshToken.findOne({ token: refreshToken });
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Invalid refresh token' });
+    }
+
+    // Verify expiration
+    if (Date.now() >= token.expires) {
+      // Remove expired token
+      await RefreshToken.deleteOne({ _id: token._id });
+      return res.status(400).json({ success: false, message: 'Refresh token expired' });
+    }
+
+    // Check if revoked
+    if (token.revoked) {
+      return res.status(400).json({ success: false, message: 'Token revoked' });
+    }
+
+    const user = await User.findById(token.user);
+
+    // Rotate token
+    const newRefreshToken = await generateRefreshToken(user, req.ip);
+    token.revoked = Date.now();
+    token.revokedByIp = req.ip;
+    token.replacedByToken = newRefreshToken.token;
+    await token.save();
+
+    const accessToken = generateAccessToken(user);
+
+    res.json({
+      success: true,
+      data: {
+        token: accessToken,
+        refreshToken: newRefreshToken.token
+      }
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({
