@@ -74,6 +74,10 @@ const orderSchema = new mongoose.Schema({
     carrier: String,
     trackingNumber: String,
     trackingUrl: String
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
