@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const TokenBlacklist = require('../models/TokenBlacklist');
 
 const auth = async (req, res, next) => {
   try {
@@ -20,6 +21,15 @@ const auth = async (req, res, next) => {
     try {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Check if token is blacklisted
+      const blacklistedToken = await TokenBlacklist.findOne({ token });
+      if (blacklistedToken) {
+        return res.status(401).json({
+          success: false,
+          message: 'Not authorized to access this route (Token Blacklisted)'
+        });
+      }
 
       // Get user from token
       const user = await User.findById(decoded.id).select('-password');

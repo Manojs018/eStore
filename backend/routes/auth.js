@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const TokenBlacklist = require('../models/TokenBlacklist');
 const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
@@ -124,6 +125,30 @@ router.post('/login', [
         user,
         token
       }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// @desc    Logout user / Clear cookie
+// @route   POST /api/auth/logout
+// @access  Private
+router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+
+    await TokenBlacklist.create({
+      token
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
     });
   } catch (error) {
     console.error(error);
