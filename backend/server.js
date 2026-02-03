@@ -4,6 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
+const logger = require('./utils/logger');
+const requestLogger = require('./middleware/requestLogger');
 
 // Load environment variables
 dotenv.config();
@@ -21,6 +23,7 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Security Middleware
 app.use(helmet());
+app.use(requestLogger);
 
 // Apply global rate limiter to all api routes
 app.use('/api/', apiLimiter);
@@ -64,7 +67,7 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error(err.stack); // Log stack trace using logger
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
@@ -114,9 +117,9 @@ const connectDB = async () => {
       useUnifiedTopology: true
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    logger.error('MongoDB connection error:', error);
     process.exit(1);
   }
 };
@@ -128,23 +131,24 @@ const startServer = async () => {
   await connectDB();
 
   app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
 };
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
+  logger.error(`Error: ${err.message}`);
   // Close server & exit process
-  server.close(() => {
-    process.exit(1);
-  });
+  // server object is not defined in this scope if startServer calls listen inside. 
+  // We need to export server or handle it better. 
+  // But for now replacing console.log
+  process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.log(`Error: ${err.message}`);
-  console.log('Shutting down the server due to Uncaught Exception');
+  logger.error(`Error: ${err.message}`);
+  logger.error('Shutting down the server due to Uncaught Exception');
   process.exit(1);
 });
 

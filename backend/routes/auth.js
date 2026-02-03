@@ -7,7 +7,7 @@ const TokenBlacklist = require('../models/TokenBlacklist');
 const RefreshToken = require('../models/RefreshToken');
 const sendEmail = require('../utils/sendEmail');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
-
+const logger = require('../utils/logger');
 const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -82,6 +82,8 @@ router.post('/register', [
         message
       });
 
+      logger.info(`New user registered: ${user.email}`);
+
       res.status(201).json({
         success: true,
         message: 'User registered. Please verify your email.',
@@ -90,7 +92,7 @@ router.post('/register', [
         }
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       user.emailVerificationToken = undefined;
       user.emailVerificationExpire = undefined;
       await user.save({ validateBeforeSave: false });
@@ -101,7 +103,7 @@ router.post('/register', [
       });
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -132,6 +134,7 @@ router.post('/login', [
     // Check for user
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      logger.warn(`Login failed: Invalid email ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -157,6 +160,7 @@ router.post('/login', [
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      logger.warn(`Login failed: Invalid password for ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -166,6 +170,8 @@ router.post('/login', [
     // Generate Tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, req.ip);
+
+    logger.info(`User logged in: ${user.email}`);
 
     res.json({
       success: true,
@@ -177,7 +183,7 @@ router.post('/login', [
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -201,7 +207,7 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
       message: 'Logged out successfully'
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -258,7 +264,7 @@ router.post('/refresh', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -277,7 +283,7 @@ router.get('/me', require('../middleware/auth').auth, async (req, res) => {
       data: user
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -295,7 +301,7 @@ router.get('/profile', require('../middleware/auth').auth, async (req, res) => {
       data: req.user
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -314,7 +320,7 @@ router.get('/users', require('../middleware/auth').auth, require('../middleware/
       data: users
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -359,7 +365,7 @@ router.post('/forgot-password', async (req, res) => {
         data: 'Email sent'
       });
     } catch (err) {
-      console.log(err);
+      logger.error(err);
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
 
@@ -371,7 +377,7 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -421,7 +427,7 @@ router.put('/reset-password/:resettoken', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -471,7 +477,7 @@ router.get('/verifyemail/:token', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -526,7 +532,7 @@ router.post('/resend-verification', [
     }
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
