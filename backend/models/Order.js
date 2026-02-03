@@ -83,6 +83,10 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Indexes
+orderSchema.index({ user: 1 }); // For fetching user orders
+orderSchema.index({ createdAt: -1 }); // For sorting recent orders
+
 // Calculate total amount before saving
 orderSchema.pre('save', function (next) {
   if (this.items && this.items.length > 0) {

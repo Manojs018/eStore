@@ -46,9 +46,13 @@ const RegisterForm = () => {
     if (!data.password) {
       newErrors.password = 'Password is required';
     } else {
-      if (data.password.length < 7) passwordErrors.push('min 7 chars');
+      if (data.password.length < 8) passwordErrors.push('min 8 chars');
       if (!/[A-Z]/.test(data.password)) passwordErrors.push('uppercase');
+      if (!/[a-z]/.test(data.password)) passwordErrors.push('lowercase');
       if (!/[0-9]/.test(data.password)) passwordErrors.push('number');
+      if (!/[@$!%*?&]/.test(data.password)) passwordErrors.push('special char');
+      if (data.password.toLowerCase() === 'password123') passwordErrors.push('common password rejected');
+
       if (passwordErrors.length > 0) {
         newErrors.password = 'Does not meet strength requirements';
       }

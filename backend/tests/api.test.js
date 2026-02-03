@@ -29,7 +29,7 @@ describe('Authentication Routes', () => {
         });
 
       expect(res.statusCode).toEqual(201);
-      expect(res.body).toHaveProperty('token');
+      expect(res.body.data).toHaveProperty('token');
       expect(res.body.data).toHaveProperty('user');
     });
 
@@ -83,7 +83,7 @@ describe('Authentication Routes', () => {
         });
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body).toHaveProperty('token');
+      expect(res.body.data).toHaveProperty('token');
     });
 
     it('should not login with wrong password', async () => {

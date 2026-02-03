@@ -7,16 +7,36 @@ const TokenBlacklist = require('../models/TokenBlacklist');
 const RefreshToken = require('../models/RefreshToken');
 const sendEmail = require('../utils/sendEmail');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
+const logger = require('../utils/logger');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+// Apply auth limiter to all auth routes
+router.use(authLimiter);
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 router.post('/register', [
-  body('name').trim().isLength({ min: 2, max: 50 }).withMessage('Name must be 2-50 characters'),
+  body('name').trim().isLength({ min: 2, max: 50 }).escape().withMessage('Name must be 2-50 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    }).withMessage('Password must contain uppercase, lowercase, number, and special character')
+    .custom(value => {
+      const common = ['password', 'password123', 'admin', '12345678', 'qwertyuiop'];
+      if (common.includes(value.toLowerCase())) {
+        throw new Error('Common passwords are not allowed');
+      }
+      return true;
+    })
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -47,21 +67,43 @@ router.post('/register', [
       password
     });
 
-    // Generate Tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = await generateRefreshToken(user, req.ip);
+    // Generate Verification Token
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
 
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user,
-        token: accessToken,
-        refreshToken: refreshToken.token
-      }
-    });
+    // Send Verification Email
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verifyemail/${verificationToken}`;
+    const message = `Please confirm your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Email Verification',
+        message
+      });
+
+      logger.info(`New user registered: ${user.email}`);
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered. Please verify your email.',
+        data: {
+          user
+        }
+      });
+    } catch (error) {
+      logger.error(error);
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent'
+      });
+    }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -92,6 +134,7 @@ router.post('/login', [
     // Check for user
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      logger.warn(`Login failed: Invalid email ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -106,9 +149,18 @@ router.post('/login', [
       });
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please verify your email to login'
+      });
+    }
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      logger.warn(`Login failed: Invalid password for ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -118,6 +170,8 @@ router.post('/login', [
     // Generate Tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, req.ip);
+
+    logger.info(`User logged in: ${user.email}`);
 
     res.json({
       success: true,
@@ -129,7 +183,7 @@ router.post('/login', [
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -153,7 +207,7 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
       message: 'Logged out successfully'
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -210,7 +264,7 @@ router.post('/refresh', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -229,7 +283,7 @@ router.get('/me', require('../middleware/auth').auth, async (req, res) => {
       data: user
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -247,7 +301,7 @@ router.get('/profile', require('../middleware/auth').auth, async (req, res) => {
       data: req.user
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -266,7 +320,7 @@ router.get('/users', require('../middleware/auth').auth, require('../middleware/
       data: users
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -311,7 +365,7 @@ router.post('/forgot-password', async (req, res) => {
         data: 'Email sent'
       });
     } catch (err) {
-      console.log(err);
+      logger.error(err);
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
 
@@ -323,7 +377,7 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -373,11 +427,113 @@ router.put('/reset-password/:resettoken', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({
       success: false,
       message: 'Server error'
     });
+  }
+});
+
+// @desc    Verify Email
+// @route   GET /api/auth/verifyemail/:token
+// @access  Public
+router.get('/verifyemail/:token', async (req, res) => {
+  try {
+    const emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken,
+      emailVerificationExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    await user.save();
+
+    // Generate tokens for immediate login? Or ask to login.
+    // Usually asking to login is safer/standard flow, but auto-login is nicer.
+    // Let's return tokens to auto-login.
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, req.ip);
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+      data: {
+        token: accessToken,
+        refreshToken: refreshToken.token
+      }
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// @desc    Resend Verification Email
+// @route   POST /api/auth/resend-verification
+// @access  Public
+router.post('/resend-verification', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'Email already verified' });
+    }
+
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verifyemail/${verificationToken}`;
+    const message = `Please confirm your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Email Verification',
+        message
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification email sent'
+      });
+    } catch (error) {
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({ success: false, message: 'Email could not be sent' });
+    }
+
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

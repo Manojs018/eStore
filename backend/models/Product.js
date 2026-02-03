@@ -56,5 +56,10 @@ const productSchema = new mongoose.Schema({
 
 // Index for search
 productSchema.index({ name: 'text', description: 'text' });
+// Performance indexes
+productSchema.index({ category: 1 });
+productSchema.index({ name: 1 });
+productSchema.index({ price: 1 }); // Often filtered/sorted
+productSchema.index({ averageRating: -1 }); // Often sorted
 
 module.exports = mongoose.model('Product', productSchema);

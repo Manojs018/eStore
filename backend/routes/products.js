@@ -1,17 +1,20 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const { auth, admin } = require('../middleware/auth');
+
+const { searchLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
-router.get('/', async (req, res) => {
+router.get('/', searchLimiter, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 12);
     const skip = (page - 1) * limit;
 
     const search = req.query.search || '';
@@ -57,7 +60,7 @@ router.get('/', async (req, res) => {
 // @desc    Filter products with advanced options
 // @route   GET /api/products/filter
 // @access  Public
-router.get('/filter', async (req, res) => {
+router.get('/filter', searchLimiter, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -188,8 +191,20 @@ router.get('/:id', async (req, res) => {
 // @desc    Create product
 // @route   POST /api/products
 // @access  Private/Admin
-router.post('/', auth, admin, async (req, res) => {
+router.post('/', auth, admin, [
+  body('name').trim().isLength({ min: 1, max: 100 }).escape(),
+  body('description').trim().isLength({ max: 1000 }).escape(),
+  body('price').isFloat({ min: 0 }),
+  body('category').isIn(['electronics', 'components', 'tools', 'other']),
+  body('stock').isInt({ min: 0 }),
+  body('imageUrl').optional({ checkFalsy: true }).isURL().withMessage('Invalid URL'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     const { name, description, price, category, stock, imageUrl } = req.body;
 
     const product = await Product.create({
@@ -217,8 +232,20 @@ router.post('/', auth, admin, async (req, res) => {
 // @desc    Update product
 // @route   PUT /api/products/:id
 // @access  Private/Admin
-router.put('/:id', auth, admin, async (req, res) => {
+router.put('/:id', auth, admin, [
+  body('name').optional().trim().isLength({ min: 1, max: 100 }).escape(),
+  body('description').optional().trim().isLength({ max: 1000 }).escape(),
+  body('price').optional().isFloat({ min: 0 }),
+  body('category').optional().isIn(['electronics', 'components', 'tools', 'other']),
+  body('stock').optional().isInt({ min: 0 }),
+  body('imageUrl').optional({ checkFalsy: true }).isURL().withMessage('Invalid URL'),
+], async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,
