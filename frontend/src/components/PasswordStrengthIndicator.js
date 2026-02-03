@@ -30,10 +30,11 @@ const PasswordStrengthIndicator = ({ password }) => {
     };
 
     const requirements = [
-        { label: 'At least 7 characters', met: password.length > 6 },
-        { label: 'Contains uppercase letter', met: /[A-Z]/.test(password) },
-        { label: 'Contains number', met: /[0-9]/.test(password) },
-        { label: 'Contains special character', met: /[^A-Za-z0-9]/.test(password) },
+        { label: 'At least 8 characters', met: password.length >= 8 },
+        { label: 'Uppercase', met: /[A-Z]/.test(password) },
+        { label: 'Lowercase', met: /[a-z]/.test(password) },
+        { label: 'Number', met: /[0-9]/.test(password) },
+        { label: 'Special char (@$!%*?&)', met: /[@$!%*?&]/.test(password) },
     ];
 
     return (

@@ -21,7 +21,22 @@ router.use(authLimiter);
 router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 50 }).escape().withMessage('Name must be 2-50 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    }).withMessage('Password must contain uppercase, lowercase, number, and special character')
+    .custom(value => {
+      const common = ['password', 'password123', 'admin', '12345678', 'qwertyuiop'];
+      if (common.includes(value.toLowerCase())) {
+        throw new Error('Common passwords are not allowed');
+      }
+      return true;
+    })
 ], async (req, res) => {
   try {
     // Check for validation errors
