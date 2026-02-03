@@ -19,7 +19,7 @@ router.use(authLimiter);
 // @route   POST /api/auth/register
 // @access  Public
 router.post('/register', [
-  body('name').trim().isLength({ min: 2, max: 50 }).withMessage('Name must be 2-50 characters'),
+  body('name').trim().isLength({ min: 2, max: 50 }).escape().withMessage('Name must be 2-50 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], async (req, res) => {
