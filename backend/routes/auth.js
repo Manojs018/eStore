@@ -8,7 +8,12 @@ const RefreshToken = require('../models/RefreshToken');
 const sendEmail = require('../utils/sendEmail');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
+const { authLimiter } = require('../middleware/rateLimiter');
+
 const router = express.Router();
+
+// Apply auth limiter to all auth routes
+router.use(authLimiter);
 
 // @desc    Register user
 // @route   POST /api/auth/register

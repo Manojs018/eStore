@@ -15,6 +15,10 @@ const orderRoutes = require('./routes/orders');
 const app = express();
 
 // Middleware
+const { apiLimiter } = require('./middleware/rateLimiter');
+
+// Apply global rate limiter to all api routes
+app.use('/api/', apiLimiter);
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true

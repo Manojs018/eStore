@@ -3,12 +3,14 @@ const Product = require('../models/Product');
 const Review = require('../models/Review');
 const { auth, admin } = require('../middleware/auth');
 
+const { searchLimiter } = require('../middleware/rateLimiter');
+
 const router = express.Router();
 
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
-router.get('/', async (req, res) => {
+router.get('/', searchLimiter, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -57,7 +59,7 @@ router.get('/', async (req, res) => {
 // @desc    Filter products with advanced options
 // @route   GET /api/products/filter
 // @access  Public
-router.get('/filter', async (req, res) => {
+router.get('/filter', searchLimiter, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
