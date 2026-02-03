@@ -2,8 +2,10 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const ErrorResponse = require('../utils/errorResponse');
 const { auth, admin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -104,89 +106,83 @@ router.post('/confirm-payment', auth, [
   body('paymentIntentId').notEmpty().withMessage('Payment intent ID is required'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('shippingAddress').isObject().withMessage('Shipping address is required')
-], async (req, res) => {
+], async (req, res, next) => {
+  const session = await mongoose.startSession();
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
+    let order;
 
-    const { paymentIntentId, items, shippingAddress } = req.body;
-
-    // Verify payment intent
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment not completed'
-      });
-    }
-
-    // Check if order already exists
-    const existingOrder = await Order.findOne({ paymentIntentId });
-    if (existingOrder) {
-      return res.status(400).json({
-        success: false,
-        message: 'Order already exists'
-      });
-    }
-
-    // Validate and prepare order items
-    const orderItems = [];
-    let totalAmount = 0;
-
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product || !product.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: `Product ${item.productId} not found or inactive`
-        });
+    await session.withTransaction(async () => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new ErrorResponse('Validation failed', 400); // Or handle errors explicitly
       }
 
-      if (product.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${product.name}`
-        });
+      const { paymentIntentId, items, shippingAddress } = req.body;
+
+      // Verify payment intent
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.status !== 'succeeded') {
+        throw new ErrorResponse('Payment not completed', 400);
       }
 
-      orderItems.push({
-        product: product._id,
-        name: product.name,
-        price: product.price,
-        quantity: item.quantity
-      });
+      // Check if order already exists (using session)
+      const existingOrder = await Order.findOne({ paymentIntentId }).session(session);
+      if (existingOrder) {
+        throw new ErrorResponse('Order already exists', 400);
+      }
 
-      totalAmount += product.price * item.quantity;
+      // Validate and prepare order items
+      const orderItems = [];
+      let totalAmount = 0;
 
-      // Update product stock
-      product.stock -= item.quantity;
-      await product.save();
-    }
+      for (const item of items) {
+        // Find product with session to ensure consistency and lock?
+        const product = await Product.findById(item.productId).session(session);
+        if (!product || !product.isActive) {
+          throw new ErrorResponse(`Product ${item.productId} not found or inactive`, 400);
+        }
 
-    // Create order
-    const order = await Order.create({
-      user: req.user._id,
-      items: orderItems,
-      totalAmount,
-      shippingAddress,
-      paymentIntentId,
-      paymentStatus: 'paid',
-      stripePaymentIntentId: paymentIntentId,
-      statusHistory: [{
-        status: 'processing',
-        date: new Date(),
-        comment: 'Order placed successfully'
-      }]
+        if (product.stock < item.quantity) {
+          throw new ErrorResponse(`Insufficient stock for ${product.name}`, 400);
+        }
+
+        orderItems.push({
+          product: product._id,
+          name: product.name,
+          price: product.price,
+          quantity: item.quantity
+        });
+
+        totalAmount += product.price * item.quantity;
+
+        // Update product stock within transaction
+        product.stock -= item.quantity;
+        await product.save({ session });
+      }
+
+      // Create order
+      const [createdOrder] = await Order.create([{
+        user: req.user._id,
+        items: orderItems,
+        totalAmount,
+        shippingAddress,
+        paymentIntentId,
+        paymentStatus: 'paid',
+        stripePaymentIntentId: paymentIntentId,
+        statusHistory: [{
+          status: 'processing',
+          date: new Date(),
+          comment: 'Order placed successfully'
+        }]
+      }], { session });
+
+      order = createdOrder;
     });
 
-    // Send email notification to admin
+    session.endSession();
+
+    // Send email notification (outside transaction)
     try {
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -196,20 +192,11 @@ router.post('/confirm-payment', auth, [
           <h2>New Order Received</h2>
           <p><strong>Order ID:</strong> ${order._id}</p>
           <p><strong>Customer:</strong> ${req.user.name} (${req.user.email})</p>
-          <p><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
-          <p><strong>Shipping Address:</strong></p>
-          <p>${shippingAddress.street}<br>
-          ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}<br>
-          ${shippingAddress.country}</p>
-          <h3>Items:</h3>
-          <ul>
-            ${orderItems.map(item => `<li>${item.name} - Quantity: ${item.quantity} - Price: $${item.price.toFixed(2)}</li>`).join('')}
-          </ul>
+          <p><strong>Total Amount:</strong> $${order.totalAmount.toFixed(2)}</p>
         `
       });
     } catch (emailError) {
       console.error('Email sending failed:', emailError);
-      // Don't fail the order if email fails
     }
 
     res.status(201).json({
@@ -217,11 +204,9 @@ router.post('/confirm-payment', auth, [
       data: order
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    session.endSession();
+    // Pass to global error handler which handles ErrorResponse
+    next(error);
   }
 });
 
