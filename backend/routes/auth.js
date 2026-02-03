@@ -52,19 +52,39 @@ router.post('/register', [
       password
     });
 
-    // Generate Tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = await generateRefreshToken(user, req.ip);
+    // Generate Verification Token
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
 
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user,
-        token: accessToken,
-        refreshToken: refreshToken.token
-      }
-    });
+    // Send Verification Email
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verifyemail/${verificationToken}`;
+    const message = `Please confirm your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Email Verification',
+        message
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered. Please verify your email.',
+        data: {
+          user
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Email could not be sent'
+      });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -108,6 +128,14 @@ router.post('/login', [
       return res.status(401).json({
         success: false,
         message: 'Account is deactivated'
+      });
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please verify your email to login'
       });
     }
 
@@ -383,6 +411,108 @@ router.put('/reset-password/:resettoken', async (req, res) => {
       success: false,
       message: 'Server error'
     });
+  }
+});
+
+// @desc    Verify Email
+// @route   GET /api/auth/verifyemail/:token
+// @access  Public
+router.get('/verifyemail/:token', async (req, res) => {
+  try {
+    const emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken,
+      emailVerificationExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired token'
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    await user.save();
+
+    // Generate tokens for immediate login? Or ask to login.
+    // Usually asking to login is safer/standard flow, but auto-login is nicer.
+    // Let's return tokens to auto-login.
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, req.ip);
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+      data: {
+        token: accessToken,
+        refreshToken: refreshToken.token
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+
+// @desc    Resend Verification Email
+// @route   POST /api/auth/resend-verification
+// @access  Public
+router.post('/resend-verification', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'Email already verified' });
+    }
+
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    const verificationUrl = `${req.protocol}://${req.get('host')}/api/auth/verifyemail/${verificationToken}`;
+    const message = `Please confirm your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Email Verification',
+        message
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification email sent'
+      });
+    } catch (error) {
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+      return res.status(500).json({ success: false, message: 'Email could not be sent' });
+    }
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
