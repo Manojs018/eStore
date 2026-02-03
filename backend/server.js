@@ -12,6 +12,10 @@ const errorHandler = require('./middleware/errorHandler');
 // Load environment variables
 dotenv.config();
 
+// Validate Environment
+const validateEnv = require('./config/validateEnv');
+validateEnv();
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
