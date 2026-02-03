@@ -8,6 +8,7 @@ const validateEnv = () => {
 
     const recommended = [
         'STRIPE_SECRET_KEY',
+        'STRIPE_WEBHOOK_SECRET',
         'SMTP_EMAIL',
         'SMTP_PASSWORD'
     ];
