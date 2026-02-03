@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
 
 // Load environment variables
 dotenv.config();
@@ -16,6 +17,9 @@ const app = express();
 
 // Middleware
 const { apiLimiter } = require('./middleware/rateLimiter');
+
+// Security Middleware
+app.use(helmet());
 
 // Apply global rate limiter to all api routes
 app.use('/api/', apiLimiter);
