@@ -13,8 +13,8 @@ const router = express.Router();
 // @access  Public
 router.get('/', searchLimiter, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 12);
     const skip = (page - 1) * limit;
 
     const search = req.query.search || '';
