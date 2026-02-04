@@ -143,6 +143,27 @@ Once deployed, perform these checks:
 
 ---
 
+## 🧪 Staging Environment
+
+To avoid testing directly in production, use a Staging Environment.
+
+### Setup Staging
+1.  **Branching**: We use a `staging` branch. Pushing to this branch triggers the Staging Deployment workflow.
+2.  **Infrastructure**: Duplicate your Production services (e.g., `estore-staging-backend` and `estore-staging-frontend`).
+3.  **Database**: Create a separate MongoDB database (e.g., `estore-staging`).
+4.  **GitHub Secrets**: Add these Staging-specific secrets to your repository:
+    *   `STAGING_MONGODB_URI`
+    *   `STAGING_STRIPE_SECRET_KEY`
+    *   `STAGING_CLIENT_URL`
+
+### Workflow
+1.  Develop on `develop` or feature branches.
+2.  Push to `staging` to deploy.
+3.  Test on the Staging URL.
+4.  If successful, merge `staging` into `main` to deploy to Production.
+
+---
+
 ## 🔒 GitHub Secrets (for CI/CD)
 
 If using the GitHub Actions pipeline (`cicd.yml`), verify these secrets in **Settings > Secrets**:
