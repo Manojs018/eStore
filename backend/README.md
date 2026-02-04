@@ -181,13 +181,13 @@ backend/
 
 ## Production Deployment
 
+For detailed step-by-step instructions on deploying to Railway, Heroku, or other platforms, please refer to the [DEPLOYMENT.md](./DEPLOYMENT.md) guide.
+
+### Quick Checklist
 1. Set `NODE_ENV=production`
-2. Use a production MongoDB instance
+2. Use a production MongoDB instance (Atlas)
 3. Set up proper environment variables
-4. Use a process manager like PM2
-5. Set up SSL/TLS
-6. Configure reverse proxy (nginx)
-7. Set up monitoring and logging
+4. Whitelist Frontend URL in `CLIENT_URL`
 
 ## License
 
