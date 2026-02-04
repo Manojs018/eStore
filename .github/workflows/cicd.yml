@@ -51,12 +51,12 @@ jobs:
           cd backend
           npm test -- --coverage
         env:
-          MONGO_URI: mongodb://localhost:27017/estore-test
-          JWT_SECRET: test_secret
-          STRIPE_SECRET_KEY: sk_test_dummy
-          EMAIL_USER: test@test.com
-          EMAIL_PASS: dummy
-          ADMIN_EMAIL: admin@test.com
+          MONGO_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/estore-test' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'test_secret' }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || 'sk_test_dummy' }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER || 'test@test.com' }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASSWORD || 'dummy' }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL || 'admin@test.com' }}
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -97,6 +97,7 @@ jobs:
           npm test -- --coverage --watchAll=false
         env:
           CI: true
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLIC_KEY || 'pk_test_dummy' }}
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -134,6 +135,8 @@ jobs:
         run: |
           cd frontend
           npm run build
+        env:
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build frontend Docker image
@@ -159,6 +162,8 @@ jobs:
         run: |
           cd frontend
           npm run build
+        env:
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
       - name: Deploy preview to Vercel
         uses: vercel/action@master
         with:
@@ -193,13 +198,6 @@ jobs:
           cd frontend
           npm install --legacy-peer-deps
           npm audit --audit-level=moderate || true
-        run: |
-          cd frontend
-          npm run build
-      - name: Build frontend Docker image
-        run: |
-          cd frontend
-          docker build -t estore-frontend:${{ github.sha }} .
 
   deploy:
     needs: [build-backend, build-frontend]
