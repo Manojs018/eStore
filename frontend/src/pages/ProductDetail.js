@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import { ProductDetailSkeleton } from '../components/SkeletonLoader';
-import { SAMPLE_PRODUCTS } from '../utils/constants';
 import ReviewList from '../components/ReviewList';
+import api from '../services/api';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -15,17 +15,23 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, fetch from API
-    // Simulate delay
-    const timer = setTimeout(() => {
-      const foundProduct = SAMPLE_PRODUCTS.find(p => p._id === id);
-      if (foundProduct) {
-        setProduct(foundProduct);
+    const fetchProduct = async () => {
+      try {
+        const res = await api.get(`/products/${id}`);
+        if (res.data.success) {
+          setProduct(res.data.data);
+        } else {
+          setProduct(null);
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        setProduct(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    fetchProduct();
   }, [id]);
 
   const handleAddToCart = () => {
@@ -81,7 +87,7 @@ const ProductDetail = () => {
           className="bg-white rounded-lg shadow-lg overflow-hidden"
         >
           <img
-            src={product.image}
+            src={product.imageUrl || product.image || 'https://via.placeholder.com/300'}
             alt={product.name}
             className="w-full h-auto aspect-square object-cover"
           />
