@@ -93,10 +93,13 @@ describe('Email Verification', () => {
         // Solution: We need to spy on `request`? No.
         // We need to look at the argument passed to sendEmail.
 
-        const sendEmailArgs = sendEmail.mock.calls[0][0]; // { email, subject, message }
-        const message = sendEmailArgs.message;
-        // Extract token from URL: /verifyemail/TOKEN
-        const match = message.match(/verifyemail\/([a-f0-9]+)/);
+        const sendEmailArgs = sendEmail.mock.calls[0][0]; // { email, subject, template, data }
+
+        expect(sendEmailArgs.template).toBe('emailVerification');
+
+        // Extract token from verificationUrl in data
+        const verificationUrl = sendEmailArgs.data.verificationUrl;
+        const match = verificationUrl.match(/verifyemail\/([a-f0-9]+)/);
         const token = match[1];
 
         // 3. Verify
@@ -105,6 +108,16 @@ describe('Email Verification', () => {
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
         expect(res.body.data.token).toBeDefined(); // Should return login token
+
+        // Check for Welcome Email
+        // Note: In our implementation, we send welcome email AFTER verification success.
+        // But since we are mocking, we can't easily chain it unless the controller sends it.
+        // If verifyemail sends email, sendEmail should be called again?
+        // Let's check call count in 'should verify email...' 
+        // We cleared mocks in beforeEach, so count starts at 0? 
+        // No, we called register first (1 call). Then verify (should be 2nd call).
+
+        // Let's just verify the token flow first.
 
         // 4. Check DB
         const user = await User.findOne({ email: 'toverify@test.com' });

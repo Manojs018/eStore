@@ -57,7 +57,11 @@ describe('Password Reset Flow', () => {
             expect(res.statusCode).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.data).toBe('Email sent');
+            expect(res.body.data).toBe('Email sent');
             expect(sendEmail).toHaveBeenCalledTimes(1);
+
+            const sendEmailArgs = sendEmail.mock.calls[0][0];
+            expect(sendEmailArgs.template).toBe('passwordReset');
         });
 
         it('should return success even if email does not exist (security)', async () => {

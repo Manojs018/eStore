@@ -1,0 +1,51 @@
+<%- include('header') %>
+
+    <h2>Order Confirmation</h2>
+    <p>Thank you for your order, <%= name %>!</p>
+    <p>We have received your order and are processing it. Here are the details:</p>
+
+    <h3>Order ID: #<%= orderId %>
+    </h3>
+    <p><strong>Date:</strong>
+        <%= new Date().toLocaleDateString() %>
+    </p>
+
+    <table class="order-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% items.forEach(function(item) { %>
+                <tr>
+                    <td>
+                        <%= item.name %>
+                    </td>
+                    <td>
+                        <%= item.quantity %>
+                    </td>
+                    <td>$<%= item.price %>
+                    </td>
+                </tr>
+                <% }); %>
+        </tbody>
+    </table>
+
+    <h3 style="text-align: right;">Total: $<%= totalAmount %>
+    </h3>
+
+    <h3>Shipping Address:</h3>
+    <p>
+        <%= shippingAddress.street %><br>
+            <%= shippingAddress.city %>, <%= shippingAddress.state %>
+                    <%= shippingAddress.zipCode %>
+    </p>
+
+    <center>
+        <a href="<%= orderUrl %>" class="button" style="color: #ffffff;">View Order</a>
+    </center>
+
+    <%- include('footer') %>

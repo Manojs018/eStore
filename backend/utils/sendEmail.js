@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const ejs = require('ejs');
+const path = require('path');
 
 const sendEmail = async (options) => {
     const transporter = nodemailer.createTransport({
@@ -11,11 +13,23 @@ const sendEmail = async (options) => {
         }
     });
 
+    let html = options.html;
+
+    if (options.template) {
+        const templatePath = path.join(__dirname, '../templates', `${options.template}.ejs`);
+        const templateData = {
+            subject: options.subject,
+            ...options.data
+        };
+        html = await ejs.renderFile(templatePath, templateData);
+    }
+
     const message = {
         from: `${process.env.FROM_NAME || 'eStore'} <${process.env.FROM_EMAIL || process.env.EMAIL_USER}>`,
         to: options.email,
         subject: options.subject,
-        text: options.message
+        text: options.message,
+        html: html
     };
 
     const info = await transporter.sendMail(message);
