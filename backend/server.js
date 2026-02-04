@@ -34,10 +34,28 @@ app.use(requestLogger);
 
 // Apply global rate limiter to all api routes
 app.use('/api/', apiLimiter);
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
-}));
+// CORS Configuration
+const whitelist = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL
+].filter(Boolean); // Remove undefined/null values
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // Webhook routes (Must be before express.json to handle raw body)
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), require('./routes/webhooks'));

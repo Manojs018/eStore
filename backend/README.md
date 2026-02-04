@@ -128,6 +128,18 @@ The seed script creates:
 | `EMAIL_PASS`        | Email service password        | Yes                                 |
 | `ADMIN_EMAIL`       | Admin email for notifications | Yes                                 |
 | `CLIENT_URL`        | Frontend URL for CORS         | No (default: http://localhost:3000) |
+| `ADMIN_URL`         | Admin Panel URL for CORS      | No                                  |
+
+### CORS Configuration
+
+The API uses a dynamic whitelist approach for Cross-Origin Resource Sharing (CORS).
+Allowed origins include:
+1. `http://localhost:3000` (Local Frontend)
+2. `http://localhost:5000` (Local Backend)
+3. `CLIENT_URL` (Environmental variable)
+4. `ADMIN_URL` (Environmental variable)
+
+Requests from unauthorized origins will be blocked with a 500 error. whitelist configuration can be found in `server.js`.
 
 ## Scripts
 
