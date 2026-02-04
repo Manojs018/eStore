@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, staging]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, staging]
 
 jobs:
   lint-backend:
@@ -199,12 +199,30 @@ jobs:
           npm install --legacy-peer-deps
           npm audit --audit-level=moderate || true
 
+  deploy-staging:
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    steps:
+      - name: Deploy to Staging
+        run: |
+          echo "Deploying to Staging Environment..."
+          # Example deployment command (e.g., to Railway or Render Staging Service)
+          # In a real setup, you would use a CLI or API call here.
+          # Example: railway up --service estore-staging --detach
+        env:
+          MONGO_URI: ${{ secrets.STAGING_MONGODB_URI }}
+          STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
+          CLIENT_URL: ${{ secrets.STAGING_CLIENT_URL }}
+
   deploy:
     needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: production
     steps:
-      - name: Deploy to server
+      - name: Deploy to Production
         run: |
-          echo "Deploy to your chosen platform (Render, Railway, etc.)"
+          echo "Deploying to Production Server..."
           # Add deployment commands here

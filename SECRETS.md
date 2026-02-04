@@ -24,6 +24,16 @@ Go to **Settings** -> **Secrets and variables** -> **Actions** -> **New reposito
 | `VERCEL_ORG_ID` | Vercel Organization ID |
 | `VERCEL_PROJECT_ID` | Vercel Project ID |
 
+## Staging Environment Secrets
+
+These are required for the automated staging deployment job:
+
+| Secret Name | Description |
+|:--- |:--- |
+| `STAGING_MONGODB_URI` | Separate DB for staging |
+| `STAGING_STRIPE_SECRET_KEY` | Stripe Test Key (can be same as dev) |
+| `STAGING_CLIENT_URL` | URL of deployed staging frontend |
+
 ## Notes
 
 - **Tests**: The pipeline includes fallback values for tests (`dummy` values) if secrets are not provided, but for integration tests to mimic production behavior or for deployment steps, accurate secrets are required.

@@ -2,6 +2,7 @@
 const request = require('supertest');
 const app = require('../server');
 const User = require('../models/User');
+const Product = require('../models/Product');
 const mongoose = require('mongoose');
 const sendEmail = require('../utils/sendEmail');
 
@@ -125,6 +126,37 @@ describe('Products Routes', () => {
       const res = await request(app).get('/api/products');
       expect(res.statusCode).toEqual(200);
       expect(Array.isArray(res.body.data)).toBe(true);
+    });
+  });
+
+  describe('GET /api/products/:id', () => {
+    let product;
+
+    beforeEach(async () => {
+      product = await Product.create({
+        name: 'Test Product',
+        description: 'Test Description',
+        price: 99.99,
+        category: 'electronics',
+        stock: 10
+      });
+    });
+
+    afterEach(async () => {
+      await Product.deleteMany({});
+    });
+
+    it('should return product details', async () => {
+      const res = await request(app).get(`/api/products/${product._id}`);
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.data.name).toEqual('Test Product');
+      expect(res.body.data).toHaveProperty('relatedProducts');
+    });
+
+    it('should return 404 if product not found', async () => {
+      const fakeId = new mongoose.Types.ObjectId();
+      const res = await request(app).get(`/api/products/${fakeId}`);
+      expect(res.statusCode).toEqual(404);
     });
   });
 });
