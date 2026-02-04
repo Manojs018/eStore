@@ -78,8 +78,12 @@ router.post('/register', [
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Email Verification',
-        message
+        subject: 'Verify your email - eStore',
+        template: 'emailVerification',
+        data: {
+          name: user.name,
+          verificationUrl
+        }
       });
 
       logger.info(`New user registered: ${user.email}`);
@@ -356,8 +360,11 @@ router.post('/forgot-password', async (req, res) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset Token',
-        message
+        subject: 'Password Reset Request - eStore',
+        template: 'passwordReset',
+        data: {
+          resetUrl
+        }
       });
 
       res.status(200).json({
@@ -468,6 +475,22 @@ router.get('/verifyemail/:token', async (req, res) => {
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, req.ip);
 
+    // Send Welcome Email
+    try {
+      const loginUrl = `${req.protocol}://${req.get('host')}/login`; // Or frontend URL
+      await sendEmail({
+        email: user.email,
+        subject: 'Welcome to eStore!',
+        template: 'welcome',
+        data: {
+          name: user.name,
+          loginUrl: process.env.FRONTEND_URL || 'http://localhost:3000/login'
+        }
+      });
+    } catch (err) {
+      logger.error('Welcome email failed: ' + err.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Email verified successfully',
@@ -516,8 +539,12 @@ router.post('/resend-verification', [
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Email Verification',
-        message
+        subject: 'Verify your email - eStore',
+        template: 'emailVerification',
+        data: {
+          name: user.name,
+          verificationUrl
+        }
       });
 
       res.status(200).json({

@@ -1,0 +1,16 @@
+<%- include('header') %>
+
+    <h2>Verify Your Email Address</h2>
+    <p>Hello <%= name %>,</p>
+    <p>Please confirm your email address to activate your account and start shopping.</p>
+    <br>
+    <center>
+        <a href="<%= verificationUrl %>" class="button" style="color: #ffffff;">Verify Email</a>
+    </center>
+    <br>
+    <p>If the button doesn't work, copy and paste this link into your browser:</p>
+    <p><a href="<%= verificationUrl %>">
+            <%= verificationUrl %>
+        </a></p>
+
+    <%- include('footer') %>

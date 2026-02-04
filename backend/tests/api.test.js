@@ -3,6 +3,18 @@ const request = require('supertest');
 const app = require('../server');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const sendEmail = require('../utils/sendEmail');
+
+// Mock email sending
+// Mock email sending
+jest.mock('../utils/sendEmail');
+
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+  authLimiter: (req, res, next) => next(),
+  apiLimiter: (req, res, next) => next(),
+  searchLimiter: (req, res, next) => next(),
+}));
 
 describe('Authentication Routes', () => {
   beforeAll(async () => {
@@ -24,12 +36,11 @@ describe('Authentication Routes', () => {
         .send({
           name: 'Test User',
           email: 'test@example.com',
-          password: 'password123',
+          password: 'StrongP@ssw0rd!',
           mobile: '1234567890'
         });
 
       expect(res.statusCode).toEqual(201);
-      expect(res.body.data).toHaveProperty('token');
       expect(res.body.data).toHaveProperty('user');
     });
 
@@ -37,7 +48,7 @@ describe('Authentication Routes', () => {
       await User.create({
         name: 'Existing User',
         email: 'test@example.com',
-        password: 'password123',
+        password: 'StrongP@ssw0rd!',
         mobile: '1234567890'
       });
 
@@ -46,7 +57,7 @@ describe('Authentication Routes', () => {
         .send({
           name: 'Test User',
           email: 'test@example.com',
-          password: 'password123',
+          password: 'StrongP@ssw0rd!',
           mobile: '1234567890'
         });
 
@@ -69,8 +80,9 @@ describe('Authentication Routes', () => {
       await User.create({
         name: 'Test User',
         email: 'test@example.com',
-        password: 'password123',
-        mobile: '1234567890'
+        password: 'StrongP@ssw0rd!',
+        mobile: '1234567890',
+        isEmailVerified: true
       });
     });
 
@@ -79,7 +91,7 @@ describe('Authentication Routes', () => {
         .post('/api/auth/login')
         .send({
           email: 'test@example.com',
-          password: 'password123'
+          password: 'StrongP@ssw0rd!'
         });
 
       expect(res.statusCode).toEqual(200);

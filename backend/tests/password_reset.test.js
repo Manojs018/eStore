@@ -8,6 +8,13 @@ const sendEmail = require('../utils/sendEmail');
 // Mock nodemailer
 jest.mock('../utils/sendEmail');
 
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+    authLimiter: (req, res, next) => next(),
+    apiLimiter: (req, res, next) => next(),
+    searchLimiter: (req, res, next) => next(),
+}));
+
 describe('Password Reset Flow', () => {
     let user;
     let resetToken;
@@ -31,7 +38,8 @@ describe('Password Reset Flow', () => {
         user = await User.create({
             name: 'Reset Test',
             email: 'reset@test.com',
-            password: 'password123'
+            password: 'StrongP@ssw0rd!',
+            isEmailVerified: true
         });
 
         // Clear mock
@@ -49,7 +57,11 @@ describe('Password Reset Flow', () => {
             expect(res.statusCode).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.data).toBe('Email sent');
+            expect(res.body.data).toBe('Email sent');
             expect(sendEmail).toHaveBeenCalledTimes(1);
+
+            const sendEmailArgs = sendEmail.mock.calls[0][0];
+            expect(sendEmailArgs.template).toBe('passwordReset');
         });
 
         it('should return success even if email does not exist (security)', async () => {
@@ -76,7 +88,7 @@ describe('Password Reset Flow', () => {
         it('should reset password with valid token', async () => {
             const res = await request(app)
                 .put(`/api/auth/reset-password/${resetToken}`)
-                .send({ password: 'newpassword123' });
+                .send({ password: 'StrongP@ssw0rd!123' });
 
             expect(res.statusCode).toBe(200);
             expect(res.body.success).toBe(true);
@@ -87,7 +99,7 @@ describe('Password Reset Flow', () => {
                 .post('/api/auth/login')
                 .send({
                     email: 'reset@test.com',
-                    password: 'newpassword123'
+                    password: 'StrongP@ssw0rd!123'
                 });
 
             expect(loginRes.statusCode).toBe(200);
@@ -96,7 +108,7 @@ describe('Password Reset Flow', () => {
         it('should not reset password with invalid token', async () => {
             const res = await request(app)
                 .put('/api/auth/reset-password/invalidtoken')
-                .send({ password: 'newpassword123' });
+                .send({ password: 'StrongP@ssw0rd!123' });
 
             expect(res.statusCode).toBe(400);
             expect(res.body.success).toBe(false);
@@ -116,7 +128,7 @@ describe('Password Reset Flow', () => {
 
             const res = await request(app)
                 .put(`/api/auth/reset-password/${resetToken}`)
-                .send({ password: 'newpassword123' });
+                .send({ password: 'StrongP@ssw0rd!123' });
 
             expect(res.statusCode).toBe(400);
         });

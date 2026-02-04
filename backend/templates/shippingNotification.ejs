@@ -1,0 +1,30 @@
+<%- include('header') %>
+
+    <h2>Shipping Notification</h2>
+    <p>Good news, <%= name %>!</p>
+    <p>Your order #<%= orderId %> has been shipped/updated.</p>
+
+    <h3>Status: <span style="color: #3b82f6; text-transform: uppercase;">
+            <%= status %>
+        </span></h3>
+
+    <% if (trackingNumber) { %>
+        <p><strong>Tracking Number:</strong>
+            <%= trackingNumber %>
+        </p>
+        <p><strong>Carrier:</strong>
+            <%= carrier %>
+        </p>
+        <br>
+        <center>
+            <a href="<%= trackingUrl %>" class="button" style="color: #ffffff;">Track Package</a>
+        </center>
+        <% } %>
+
+            <p>You can verify the status of your order by logging into your account.</p>
+
+            <center>
+                <a href="<%= orderUrl %>" class="button" style="color: #ffffff;">View Order Details</a>
+            </center>
+
+            <%- include('footer') %>

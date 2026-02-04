@@ -2,6 +2,16 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../server');
 
+// Mock email sending
+jest.mock('../utils/sendEmail');
+
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+    authLimiter: (req, res, next) => next(),
+    apiLimiter: (req, res, next) => next(),
+    searchLimiter: (req, res, next) => next(),
+}));
+
 describe('Input Validation & Sanitization', () => {
     beforeAll(async () => {
         if (mongoose.connection.readyState === 0) {
@@ -21,9 +31,9 @@ describe('Input Validation & Sanitization', () => {
             const res = await request(app)
                 .post('/api/auth/register')
                 .send({
-                    name: '<script>alert("xss")</script>John',
+                    name: '<script>a</script>J',
                     email: 'xss@test.com',
-                    password: 'password123'
+                    password: 'StrongP@ssw0rd!'
                 });
 
             // Using express-validator .escape() should convert special chars

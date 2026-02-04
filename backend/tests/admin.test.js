@@ -7,6 +7,13 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const AuditLog = require('../models/AuditLog');
 
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+    authLimiter: (req, res, next) => next(),
+    apiLimiter: (req, res, next) => next(),
+    searchLimiter: (req, res, next) => next(),
+}));
+
 describe('Admin API Endpoints', () => {
     let adminToken;
     let userToken;
@@ -34,8 +41,9 @@ describe('Admin API Endpoints', () => {
         adminUser = await User.create({
             name: 'Admin User',
             email: 'admin@test.com',
-            password: 'password123',
-            role: 'admin'
+            password: 'StrongP@ssw0rd!',
+            role: 'admin',
+            isEmailVerified: true
         });
 
         adminToken = jwt.sign({ id: adminUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -44,8 +52,9 @@ describe('Admin API Endpoints', () => {
         regularUser = await User.create({
             name: 'Regular User',
             email: 'user@test.com',
-            password: 'password123',
-            role: 'user'
+            password: 'StrongP@ssw0rd!',
+            role: 'user',
+            isEmailVerified: true
         });
 
         userToken = jwt.sign({ id: regularUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });

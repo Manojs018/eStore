@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const nodemailer = require('nodemailer');
+const sendEmail = require('../utils/sendEmail');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
@@ -9,15 +9,6 @@ const ErrorResponse = require('../utils/errorResponse');
 const { auth, admin } = require('../middleware/auth');
 
 const router = express.Router();
-
-// Create email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
 
 // @desc    Create payment intent
 // @route   POST /api/orders/create-payment-intent
@@ -183,10 +174,26 @@ router.post('/confirm-payment', auth, [
     session.endSession();
 
     // Send email notification (outside transaction)
+    // Send emails
     try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: process.env.ADMIN_EMAIL,
+      // 1. Send Order Confirmation to User
+      await sendEmail({
+        email: req.user.email,
+        subject: `Order Confirmation - #${order._id}`,
+        template: 'orderConfirmation',
+        data: {
+          name: req.user.name,
+          orderId: order._id,
+          items: order.items,
+          totalAmount: order.totalAmount.toFixed(2),
+          shippingAddress: order.shippingAddress,
+          orderUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order/${order._id}`
+        }
+      });
+
+      // 2. Notify Admin
+      await sendEmail({
+        email: process.env.ADMIN_EMAIL,
         subject: 'New Order Received',
         html: `
           <h2>New Order Received</h2>
@@ -355,6 +362,28 @@ router.put('/:id', auth, admin, async (req, res) => {
       success: true,
       data: order
     });
+
+    // Send Status Update Email
+    if (orderStatus && orderStatus !== 'processing') {
+      try {
+        await sendEmail({
+          email: order.user.email,
+          subject: `Order Status Update - #${order._id}`,
+          template: 'shippingNotification',
+          data: {
+            name: order.user.name,
+            orderId: order._id,
+            status: orderStatus,
+            trackingNumber: req.body.trackingNumber || '', // Optional
+            carrier: req.body.carrier || '',
+            trackingUrl: req.body.trackingUrl || '#',
+            orderUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order/${order._id}`
+          }
+        });
+      } catch (err) {
+        console.error('Status email failed:', err);
+      }
+    }
   } catch (error) {
     console.error(error);
     if (error.kind === 'ObjectId') {
