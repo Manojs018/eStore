@@ -67,13 +67,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
-});
+// Health check endpoints
+app.use('/health', require('./routes/health'));
 
 // API routes
 // API routes

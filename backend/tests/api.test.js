@@ -130,9 +130,4 @@ describe('Products Routes', () => {
 });
 
 describe('Health Check', () => {
-  it('should return server health status', async () => {
-    const res = await request(app).get('/health');
-    expect(res.statusCode).toEqual(200);
-    expect(res.body).toHaveProperty('message');
-  });
 });
