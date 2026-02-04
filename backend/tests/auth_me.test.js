@@ -4,6 +4,13 @@ const jwt = require('jsonwebtoken');
 const app = require('../server');
 const User = require('../models/User');
 
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+    authLimiter: (req, res, next) => next(),
+    apiLimiter: (req, res, next) => next(),
+    searchLimiter: (req, res, next) => next(),
+}));
+
 describe('Auth "Me" Endpoint', () => {
     let token;
     let user;
@@ -25,8 +32,9 @@ describe('Auth "Me" Endpoint', () => {
         user = await User.create({
             name: 'John Doe',
             email: 'john@example.com',
-            password: 'password123',
-            role: 'user'
+            password: 'StrongP@ssw0rd!',
+            role: 'user',
+            isEmailVerified: true
         });
 
         token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });

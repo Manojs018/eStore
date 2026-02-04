@@ -40,7 +40,7 @@ describe('Email Verification', () => {
             .send({
                 name: 'Verify User',
                 email: 'verify@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         expect(res.statusCode).toBe(201);
@@ -60,7 +60,7 @@ describe('Email Verification', () => {
             .send({
                 name: 'Unverified User',
                 email: 'unverified@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         // Login
@@ -68,7 +68,7 @@ describe('Email Verification', () => {
             .post('/api/auth/login')
             .send({
                 email: 'unverified@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         expect(res.statusCode).toBe(401);
@@ -82,7 +82,7 @@ describe('Email Verification', () => {
             .send({
                 name: 'To Verify',
                 email: 'toverify@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         // 2. Extract verification link from mock call or directly from DB
@@ -116,7 +116,7 @@ describe('Email Verification', () => {
             .post('/api/auth/login')
             .send({
                 email: 'toverify@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         expect(resLogin.statusCode).toBe(200);
@@ -129,7 +129,7 @@ describe('Email Verification', () => {
             .send({
                 name: 'Resend Test',
                 email: 'resend@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         // Resend

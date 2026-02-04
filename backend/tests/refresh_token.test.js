@@ -6,6 +6,13 @@ const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const TokenBlacklist = require('../models/TokenBlacklist');
 
+// Mock rate limiter
+jest.mock('../middleware/rateLimiter', () => ({
+    authLimiter: (req, res, next) => next(),
+    apiLimiter: (req, res, next) => next(),
+    searchLimiter: (req, res, next) => next(),
+}));
+
 describe('Refresh Token Functionality', () => {
     let user;
     let refreshToken;
@@ -30,8 +37,9 @@ describe('Refresh Token Functionality', () => {
         user = await User.create({
             name: 'Refresh Test',
             email: 'refresh@test.com',
-            password: 'password123',
-            role: 'user'
+            password: 'StrongP@ssw0rd!',
+            role: 'user',
+            isEmailVerified: true
         });
     });
 
@@ -40,7 +48,7 @@ describe('Refresh Token Functionality', () => {
             .post('/api/auth/login')
             .send({
                 email: 'refresh@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         expect(res.statusCode).toBe(200);
@@ -57,7 +65,7 @@ describe('Refresh Token Functionality', () => {
             .post('/api/auth/login')
             .send({
                 email: 'refresh@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         const validRefreshToken = loginRes.body.data.refreshToken;
@@ -108,7 +116,7 @@ describe('Refresh Token Functionality', () => {
             .post('/api/auth/login')
             .send({
                 email: 'refresh@test.com',
-                password: 'password123'
+                password: 'StrongP@ssw0rd!'
             });
 
         const validRefreshToken = loginRes.body.data.refreshToken;
