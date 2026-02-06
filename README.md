@@ -153,12 +153,6 @@ kubectl apply -f k8s/
 - `GET /api/orders` - Get user orders
 - `GET /api/orders/admin` - Get all orders (admin)
 
-## 🎨 UI Design
-
-- **Color Palette**: Indigo (#4F46E5), Electric Blue (#2563EB), Soft Gray (#F3F4F6), Accent Orange (#F97316)
-- **Typography**: Modern, clean fonts
-- **Animations**: Smooth transitions with Framer Motion
-- **Layout**: Card-based, responsive grid
 
 ## 📧 Email Notifications
 
@@ -191,6 +185,8 @@ Admin receives email notifications for new orders containing:
 3. Commit your changes
 4. Push to the branch
 5. Open a Pull Request
+
+
 
 ## 📄 License
 
