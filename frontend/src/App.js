@@ -1,24 +1,27 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import Landing from './pages/Landing';
-import ProductDetail from './pages/ProductDetail';
-import Products from './pages/Products';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Orders from './pages/Orders';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Admin from './pages/Admin';
-import NotFound from './pages/NotFound';
-import WishlistPage from './pages/WishlistPage';
+import PageLoader from './components/PageLoader';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
+
+// Lazy load pages
+const Landing = React.lazy(() => import('./pages/Landing'));
+const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
+const Products = React.lazy(() => import('./pages/Products'));
+const Cart = React.lazy(() => import('./pages/Cart'));
+const Checkout = React.lazy(() => import('./pages/Checkout'));
+const Orders = React.lazy(() => import('./pages/Orders'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const WishlistPage = React.lazy(() => import('./pages/WishlistPage'));
 
 function App() {
   return (
@@ -47,19 +50,21 @@ function App() {
                 />
                 <Header />
                 <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8">
-                  <Routes>
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/wishlist" element={<WishlistPage />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/" element={<Landing />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/orders" element={<Orders />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/wishlist" element={<WishlistPage />} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
                 </main>
                 <Footer />
               </div>

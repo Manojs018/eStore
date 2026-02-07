@@ -11,7 +11,6 @@ export const useWishlist = () => {
 export const WishlistProvider = ({ children }) => {
     const [wishlist, setWishlist] = useState([]);
     const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (user) {
