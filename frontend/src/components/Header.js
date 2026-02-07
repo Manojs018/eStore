@@ -133,7 +133,7 @@ const Header = () => {
           {/* 4. Actions (Cart, User, Mobile Toggle) */}
           <div className="flex items-center space-x-2 md:space-x-4">
             {/* Wishlist Icon */}
-            <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-primary transition-colors hover:bg-gray-50 rounded-full">
+            <Link to="/wishlist" aria-label="Wishlist" className="relative p-2 text-gray-600 hover:text-primary transition-colors hover:bg-gray-50 rounded-full">
               <Heart size={24} />
               {wishlist.length > 0 && (
                 <span className="absolute top-1 right-0 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
@@ -142,7 +142,7 @@ const Header = () => {
               )}
             </Link>
             {/* Cart Icon */}
-            <Link to="/cart" className="relative p-2 text-gray-600 hover:text-primary transition-colors hover:bg-gray-50 rounded-full">
+            <Link to="/cart" aria-label="Shopping Cart" className="relative p-2 text-gray-600 hover:text-primary transition-colors hover:bg-gray-50 rounded-full">
               <ShoppingBag size={24} />
               {getCartItemsCount() > 0 && (
                 <span className="absolute top-1 right-0 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
@@ -156,6 +156,8 @@ const Header = () => {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  aria-label="User Menu"
+                  aria-expanded={isUserMenuOpen}
                   className="flex items-center space-x-2 p-1 pl-2 pr-3 rounded-full border border-gray-200 hover:border-primary/50 transition-all ml-2"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-blue-400 text-white flex items-center justify-center text-sm font-bold shadow-sm">
@@ -233,6 +235,8 @@ const Header = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle Mobile Menu"
+              aria-expanded={isMobileMenuOpen}
               className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg ml-2"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
