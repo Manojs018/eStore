@@ -103,6 +103,49 @@ jobs:
         with:
           files: ./frontend/coverage/coverage-final.json
 
+  test-e2e:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      
+      - name: Backend - Install Dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Frontend - Install Dependencies
+        run: |
+          cd frontend
+          npm install --legacy-peer-deps
+
+      - name: Run Cypress Tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          install: false
+          browser: chrome
+          start: npm run start:ci
+          wait-on: 'http://localhost:3000, http://localhost:5000/health'
+          wait-on-timeout: 120
+        env:
+          # Shared Env
+          CI: false
+          # Backend Env
+          MONGO_URI: mongodb://localhost:27017/estore-e2e
+          JWT_SECRET: test_secret
+          STRIPE_SECRET_KEY: sk_test_dummy
+          # Frontend Env
+          REACT_APP_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+
   build-backend:
     needs: [test-backend, lint-backend]
     runs-on: ubuntu-latest
