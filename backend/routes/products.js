@@ -8,9 +8,42 @@ const { searchLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Products
+ *   description: Product management
+ */
+
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Get all products (with pagination)
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term
+ *     responses:
+ *       200:
+ *         description: List of products
+ */
 router.get('/', searchLimiter, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -147,6 +180,25 @@ router.get('/filter', searchLimiter, async (req, res) => {
 // @desc    Get single product
 // @route   GET /api/products/:id
 // @access  Public
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Get a product by ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Product details
+ *       404:
+ *         description: Product not found
+ */
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -191,6 +243,41 @@ router.get('/:id', async (req, res) => {
 // @desc    Create product
 // @route   POST /api/products
 // @access  Private/Admin
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Create a new product (Admin)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *               - category
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               category:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               stock:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Product created
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/', auth, admin, [
   body('name').trim().isLength({ min: 1, max: 100 }).escape(),
   body('description').trim().isLength({ max: 1000 }).escape(),

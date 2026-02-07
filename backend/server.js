@@ -8,6 +8,8 @@ const logger = require('./utils/logger');
 const requestLogger = require('./middleware/requestLogger');
 const requestId = require('./middleware/requestId');
 const errorHandler = require('./middleware/errorHandler');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 // Load environment variables
 dotenv.config();
@@ -69,6 +71,9 @@ app.use(mongoSanitize());
 // Health check endpoint
 // Health check endpoints
 app.use('/health', require('./routes/health'));
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 // API routes

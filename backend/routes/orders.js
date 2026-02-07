@@ -10,9 +10,63 @@ const { auth, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Orders
+ *   description: Order processing and management
+ */
+
 // @desc    Create payment intent
 // @route   POST /api/orders/create-payment-intent
 // @access  Private
+/**
+ * @swagger
+ * /api/orders/create-payment-intent:
+ *   post:
+ *     summary: Initiate checkout payment
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *               - shippingAddress
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
+ *               shippingAddress:
+ *                 type: object
+ *                 required:
+ *                   - street
+ *                   - city
+ *                   - state
+ *                   - zipCode
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   zipCode:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Payment intent client secret
+ */
 router.post('/create-payment-intent', auth, [
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
@@ -93,6 +147,37 @@ router.post('/create-payment-intent', auth, [
 // @desc    Confirm payment and create order
 // @route   POST /api/orders/confirm-payment
 // @access  Private
+/**
+ * @swagger
+ * /api/orders/confirm-payment:
+ *   post:
+ *     summary: Finalize order after payment
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentIntentId
+ *               - items
+ *               - shippingAddress
+ *             properties:
+ *               paymentIntentId:
+ *                 type: string
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               shippingAddress:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ */
 router.post('/confirm-payment', auth, [
   body('paymentIntentId').notEmpty().withMessage('Payment intent ID is required'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
@@ -220,6 +305,27 @@ router.post('/confirm-payment', auth, [
 // @desc    Get user orders
 // @route   GET /api/orders/myorders
 // @access  Private
+/**
+ * @swagger
+ * /api/orders/myorders:
+ *   get:
+ *     summary: Get logged-in user's order history
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of user orders
+ */
 router.get('/myorders', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -256,6 +362,26 @@ router.get('/myorders', auth, async (req, res) => {
 // @desc    Get single order
 // @route   GET /api/orders/:id
 // @access  Private
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   get:
+ *     summary: Get order details by ID
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order details
+ *       404:
+ *         description: Order not found
+ */
 router.get('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate('items.product', 'name imageUrl');
