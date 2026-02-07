@@ -52,6 +52,17 @@ eStore/
 └── README.md
 ```
 
+## 🏗️ Architecture
+
+The system is built using a Microservices-ready monolithic architecture, deployed via Kubernetes.
+
+-   **Frontend**: React Single Page Application (SPA).
+-   **Backend**: RESTful API with Node.js & Express.
+-   **Database**: MongoDB (NoSQL) for flexible product schemas.
+-   **Infrastructure**: Docker containers orchestrated by Kubernetes.
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed diagrams, data flow, and design decisions.
+
 ## 🏃‍♂️ Quick Start
 
 ### Prerequisites
