@@ -5,6 +5,7 @@ const app = require('../server');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const TokenBlacklist = require('../models/TokenBlacklist');
+const { connect, close, clear } = require('../tests/db');
 
 // Mock rate limiter
 jest.mock('../middleware/rateLimiter', () => ({
@@ -17,23 +18,11 @@ describe('Refresh Token Functionality', () => {
     let user;
     let refreshToken;
 
-    beforeAll(async () => {
-        if (mongoose.connection.readyState === 0) {
-            await mongoose.connect(process.env.MONGO_URI);
-        }
-    });
-
-    afterAll(async () => {
-        if (mongoose.connection.readyState !== 0) {
-            await mongoose.connection.close();
-        }
-    });
+    beforeAll(async () => connect());
+    afterAll(async () => close());
+    beforeEach(async () => clear());
 
     beforeEach(async () => {
-        await User.deleteMany({});
-        await RefreshToken.deleteMany({});
-        await TokenBlacklist.deleteMany({});
-
         user = await User.create({
             name: 'Refresh Test',
             email: 'refresh@test.com',

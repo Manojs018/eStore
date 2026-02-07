@@ -2,9 +2,26 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Health
+ *   description: Application health status
+ */
+
 // @desc    Liveness Check (Is app process running?)
 // @route   GET /health/live
 // @access  Public
+/**
+ * @swagger
+ * /health/live:
+ *   get:
+ *     summary: Liveness Probe
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Application is alive
+ */
 router.get('/live', (req, res) => {
     res.status(200).json({
         status: 'alive',
@@ -15,6 +32,18 @@ router.get('/live', (req, res) => {
 // @desc    Readiness Check (Are dependencies ready?)
 // @route   GET /health/ready
 // @access  Public
+/**
+ * @swagger
+ * /health/ready:
+ *   get:
+ *     summary: Readiness Probe
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Application dependencies are ready
+ *       503:
+ *         description: Application is not ready (e.g. database disconnected)
+ */
 router.get('/ready', (req, res) => {
     const dbState = mongoose.connection.readyState;
     // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting

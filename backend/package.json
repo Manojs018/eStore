@@ -9,7 +9,12 @@
     "seed": "node scripts/seed.js",
     "test": "jest --forceExit --runInBand",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "db:migrate": "migrate-mongo up",
+    "db:migrate:undo": "migrate-mongo down",
+    "db:migrate:create": "migrate-mongo create",
+    "db:migrate:status": "migrate-mongo status",
+    "db:rollback": "node scripts/rollback.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +31,8 @@
     "mongoose": "^7.5.0",
     "nodemailer": "^6.9.5",
     "stripe": "^12.18.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "xss": "^1.0.15",
@@ -33,6 +40,7 @@
   },
   "devDependencies": {
     "jest": "^29.0.0",
+    "migrate-mongo": "^14.0.7",
     "nodemon": "^3.0.1",
     "supertest": "^6.3.0"
   },

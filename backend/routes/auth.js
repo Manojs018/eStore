@@ -12,12 +12,48 @@ const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: User authentication and management
+ */
+
 // Apply auth limiter to all auth routes
 router.use(authLimiter);
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Validation error or user exists
+ */
 router.post('/register', [
   body('name').trim().isLength({ min: 2, max: 50 }).escape().withMessage('Name must be 2-50 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
@@ -118,6 +154,46 @@ router.post('/register', [
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post('/login', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').exists().withMessage('Password is required')
@@ -198,6 +274,18 @@ router.post('/login', [
 // @desc    Logout user / Clear cookie
 // @route   POST /api/auth/logout
 // @access  Private
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
 router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
   try {
     const token = req.headers.authorization.split(' ')[1];
@@ -279,6 +367,18 @@ router.post('/refresh', async (req, res) => {
 // @desc    Get current user (alias for profile)
 // @route   GET /api/auth/me
 // @access  Private
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current logged in user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile data
+ */
 router.get('/me', require('../middleware/auth').auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');

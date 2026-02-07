@@ -4,7 +4,7 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: estore-mongo
-    restart: unless-stopped
+    restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
@@ -15,17 +15,18 @@ services:
     networks:
       - estore-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 40s
 
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: estore-backend
-    restart: unless-stopped
+    restart: always
     environment:
       - MONGO_URI=mongodb://admin:password@mongodb:27017/estore?authSource=admin
       - CLIENT_URL=http://localhost:3000
@@ -47,17 +48,20 @@ services:
     networks:
       - estore-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
-      interval: 10s
-      timeout: 5s
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health" ]
+      interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 30s
+    labels:
+      - "autoheal=true"
 
   frontend:
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: estore-frontend
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:80"
     depends_on:
@@ -65,9 +69,29 @@ services:
         condition: service_healthy
     networks:
       - estore-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "autoheal=true"
+
+  autoheal:
+    image: willfarrell/autoheal
+    container_name: estore-autoheal
+    restart: always
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - estore-network
 
 volumes:
   mongo_data:
+
 
 networks:
   estore-network:
