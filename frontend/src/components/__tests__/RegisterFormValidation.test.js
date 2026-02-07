@@ -85,7 +85,7 @@ describe('RegisterForm Live Validation', () => {
         fireEvent.change(passwordInput, { target: { value: 'weak' } });
         fireEvent.blur(passwordInput);
 
-        expect(screen.getByText(/At least 7 characters/i)).toBeInTheDocument();
+        expect(screen.getByText(/At least 8 characters/i)).toBeInTheDocument();
     });
 
     test('submit flow with valid data', async () => {

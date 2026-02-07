@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import CategoryFilter from '../components/CategoryFilter';
-import { SAMPLE_PRODUCTS, CATEGORIES } from '../utils/constants'; // Using sample data for now
+import api from '../services/api';
+import { CATEGORIES } from '../utils/constants';
 
 const SORT_OPTIONS = [
     { label: 'Newest', value: 'newest' },
@@ -30,16 +31,31 @@ const Products = () => {
 
 
 
+    const [error, setError] = useState(null);
+
     useEffect(() => {
-        // Initial load
-        setLoading(true);
-        // Simulate API fetch delay
-        setTimeout(() => {
-            // In a real app, you'd fetch from API here
-            // const { data } = await axios.get('/api/products');
-            setProducts(SAMPLE_PRODUCTS); // Using mock data
-            setLoading(false);
-        }, 800);
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get('/products');
+                // Handle different response structures gracefully
+                if (data.data && Array.isArray(data.data)) {
+                    setProducts(data.data);
+                } else if (Array.isArray(data)) {
+                    setProducts(data);
+                } else {
+                    setProducts([]);
+                }
+                setError(null);
+            } catch (err) {
+                console.error("Failed to fetch products", err);
+                setError('Failed to load products. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
     }, []);
 
     useEffect(() => {
@@ -160,6 +176,12 @@ const Products = () => {
                             </select>
                         </div>
                     </div>
+
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+                            <span className="block sm:inline">{error}</span>
+                        </div>
+                    )}
 
                     {/* Products Grid */}
                     {loading ? (
