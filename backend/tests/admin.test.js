@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const AuditLog = require('../models/AuditLog');
+const { connect, close, clear } = require('../tests/db');
 
 // Mock rate limiter
 jest.mock('../middleware/rateLimiter', () => ({
@@ -22,21 +23,12 @@ describe('Admin API Endpoints', () => {
     let testProduct;
     let testOrder;
 
-    beforeAll(async () => {
-        // Connect to a test database if not already connected
-        if (mongoose.connection.readyState === 0) {
-            await mongoose.connect(process.env.MONGO_URI, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true
-            });
-        }
+    beforeAll(async () => connect());
+    afterAll(async () => close());
+    beforeEach(async () => clear());
 
-        // Cleanup
-        await User.deleteMany({});
-        await Product.deleteMany({});
-        await Order.deleteMany({});
-        await AuditLog.deleteMany({});
-
+    // Cleanup
+    beforeEach(async () => {
         // Create Admin User
         adminUser = await User.create({
             name: 'Admin User',
@@ -88,9 +80,7 @@ describe('Admin API Endpoints', () => {
         });
     });
 
-    afterAll(async () => {
-        await mongoose.connection.close();
-    });
+
 
     describe('Authentication & Authorization', () => {
         it('should deny access without token', async () => {

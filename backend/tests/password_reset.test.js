@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const app = require('../server');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
+const { connect, close, clear } = require('../tests/db');
 
 // Mock nodemailer
 jest.mock('../utils/sendEmail');
@@ -19,21 +20,11 @@ describe('Password Reset Flow', () => {
     let user;
     let resetToken;
 
-    beforeAll(async () => {
-        if (mongoose.connection.readyState === 0) {
-            await mongoose.connect(process.env.MONGO_URI);
-        }
-    });
-
-    afterAll(async () => {
-        if (mongoose.connection.readyState !== 0) {
-            await mongoose.connection.close();
-        }
-    });
+    beforeAll(async () => connect());
+    afterAll(async () => close());
+    beforeEach(async () => clear());
 
     beforeEach(async () => {
-        await User.deleteMany({});
-
         // Create a user
         user = await User.create({
             name: 'Reset Test',
