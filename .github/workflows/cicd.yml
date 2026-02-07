@@ -287,12 +287,20 @@ jobs:
         run: |
           cd backend
           npm install
-          npm audit --audit-level=moderate || true
+          npm audit --audit-level=high | tee backend-security-report.txt
       - name: Run npm audit for frontend
         run: |
           cd frontend
           npm install --legacy-peer-deps
-          npm audit --audit-level=moderate || true
+          npm audit --audit-level=high | tee frontend-security-report.txt
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            backend/backend-security-report.txt
+            frontend/frontend-security-report.txt
 
   deploy-staging:
     needs: [build-backend, build-frontend]
