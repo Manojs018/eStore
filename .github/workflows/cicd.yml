@@ -103,6 +103,58 @@ jobs:
         with:
           files: ./frontend/coverage/coverage-final.json
 
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install --legacy-peer-deps
+          npm install -g @lhci/cli
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+      - name: Run Lighthouse CI
+        run: |
+          cd frontend
+          lhci autorun
+
+  load-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install --legacy-peer-deps
+      - name: Install K6
+        run: |
+          curl https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz -L | tar xvz --strip-components 1
+          sudo cp k6 /usr/local/bin
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+      - name: Start Application
+        run: |
+          cd frontend
+          npx -y serve -s build -l 3000 &
+          npx -y wait-on http://localhost:3000
+      - name: Run Load Test
+        run: |
+          cd frontend
+          k6 run tests/load/k6_tests.js
+
   test-e2e:
     runs-on: ubuntu-latest
     services:
