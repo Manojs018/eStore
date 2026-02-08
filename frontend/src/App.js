@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
@@ -9,10 +9,10 @@ import Footer from './components/Footer';
 import PageLoader from './components/PageLoader';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
+import OfflineBanner from './components/OfflineBanner';
 import './App.css';
 
 import { initGA, logPageView } from './utils/analytics';
-import { useLocation } from 'react-router-dom';
 
 const PageTracker = () => {
   const location = useLocation();
@@ -65,6 +65,7 @@ function App() {
                     }}
                   />
                   <PageTracker />
+                  <OfflineBanner />
                   <Header />
                   <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8">
                     <Suspense fallback={<PageLoader />}>
