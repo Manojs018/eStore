@@ -5,6 +5,8 @@ import { useCart } from '../contexts/CartContext';
 import { ProductDetailSkeleton } from '../components/SkeletonLoader';
 import ReviewList from '../components/ReviewList';
 import api from '../services/api';
+import OptimizedImage from '../components/OptimizedImage';
+import SEO from '../components/SEO';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -73,6 +75,13 @@ const ProductDetail = () => {
       animate={{ opacity: 1 }}
       className="space-y-8"
     >
+      <SEO
+        title={product.name}
+        description={product.description}
+        image={product.imageUrl || product.image}
+        url={`https://estore.example.com/product/${product._id}`}
+        type="product"
+      />
       <button
         onClick={() => navigate('/')}
         className="text-primary hover:text-primary-dark mb-4 font-medium"
@@ -81,15 +90,18 @@ const ProductDetail = () => {
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+
         {/* Product Image */}
         <motion.div
           whileHover={{ scale: 1.02 }}
           className="bg-white rounded-lg shadow-lg overflow-hidden"
         >
-          <img
-            src={product.imageUrl || product.image || 'https://via.placeholder.com/300'}
+          <OptimizedImage
+            src={product.imageUrl || product.image}
             alt={product.name}
-            className="w-full h-auto aspect-square object-cover"
+            className="w-full h-auto aspect-square"
+            width={600}
+            height={600}
           />
         </motion.div>
 
@@ -150,11 +162,11 @@ const ProductDetail = () => {
             </motion.button>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Review Section */}
-      <ReviewList productId={id} />
-    </motion.div>
+      < ReviewList productId={id} />
+    </motion.div >
   );
 };
 

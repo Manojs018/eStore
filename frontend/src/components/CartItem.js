@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import { Plus, Minus, Trash2 } from 'lucide-react';
+import OptimizedImage from './OptimizedImage';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
@@ -55,10 +56,12 @@ const CartItem = ({ item }) => {
       {/* Product Image & Name */}
       <div className="flex items-center gap-4 w-full sm:w-2/5">
         <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-          <img
-            src={item.imageUrl || item.image || 'https://via.placeholder.com/150'}
+          <OptimizedImage
+            src={item.imageUrl || item.image}
             alt={item.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full"
+            width={150}
+            height={150}
           />
         </div>
         <div>

@@ -59,6 +59,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Sitemap Route (before other routes)
+app.use('/', require('./routes/sitemap'));
+
 // Webhook routes (Must be before express.json to handle raw body)
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), require('./routes/webhooks'));
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Heart } from 'lucide-react';
+import OptimizedImage from './OptimizedImage';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
@@ -25,21 +26,16 @@ const ProductCard = ({ product }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      transition={{ duration: 0.2 }}
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow group relative"
+    // ...
     >
       <Link to={`/product/${product._id}`}>
         <div className="relative overflow-hidden bg-gray-100">
-          <img
-            src={product.imageUrl || product.image || 'https://via.placeholder.com/400x300?text=No+Image'}
+          <OptimizedImage
+            src={product.imageUrl || product.image}
             alt={product.name}
-            loading="lazy"
-            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
-            }}
+            className="w-full h-48 transition-transform duration-300 hover:scale-105"
+            width={400}
+            height={300}
           />
           {!product.inStock && (
             <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm z-10">
