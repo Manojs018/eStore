@@ -5,6 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { logPurchase } from '../utils/analytics';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_...');
@@ -102,6 +103,7 @@ const CheckoutFormContent = () => {
       if (stripeError) {
         setError(stripeError.message);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        logPurchase(paymentIntent.id, getCartTotal());
         clearCart();
         navigate('/orders');
       }
