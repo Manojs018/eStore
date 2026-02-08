@@ -10,6 +10,7 @@ import PageLoader from './components/PageLoader';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineBanner from './components/OfflineBanner';
+import PerformanceDashboard from './components/PerformanceDashboard';
 import './App.css';
 
 import { initGA, logPageView } from './utils/analytics';
@@ -66,6 +67,7 @@ function App() {
                   />
                   <PageTracker />
                   <OfflineBanner />
+                  {process.env.NODE_ENV === 'development' && <PerformanceDashboard />}
                   <Header />
                   <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8">
                     <Suspense fallback={<PageLoader />}>
