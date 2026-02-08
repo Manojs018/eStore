@@ -11,6 +11,20 @@ import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
+import { initGA, logPageView } from './utils/analytics';
+import { useLocation } from 'react-router-dom';
+
+const PageTracker = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    initGA();
+    logPageView();
+  }, [location]);
+
+  return null;
+};
+
 // Lazy load pages
 const Landing = React.lazy(() => import('./pages/Landing'));
 const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
@@ -50,6 +64,7 @@ function App() {
                       },
                     }}
                   />
+                  <PageTracker />
                   <Header />
                   <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8">
                     <Suspense fallback={<PageLoader />}>

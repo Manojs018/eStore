@@ -7,6 +7,7 @@ import ReviewList from '../components/ReviewList';
 import api from '../services/api';
 import OptimizedImage from '../components/OptimizedImage';
 import SEO from '../components/SEO';
+import { logAddToCart, logEvent } from '../utils/analytics';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -22,6 +23,7 @@ const ProductDetail = () => {
         const res = await api.get(`/products/${id}`);
         if (res.data.success) {
           setProduct(res.data.data);
+          logEvent('Product', 'View Item', res.data.data.name);
         } else {
           setProduct(null);
         }
@@ -38,6 +40,8 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (product) {
+      logAddToCart({ ...product, quantity });
+      logEvent('Product', 'Add to Cart', product.name);
       addToCart(product, quantity);
       navigate('/cart');
     }
