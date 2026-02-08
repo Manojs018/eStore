@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import CartItem from '../components/CartItem';
 import { CartItemSkeleton } from '../components/SkeletonLoader';
+import SEO from '../components/SEO';
 
 const Cart = () => {
   const { isAuthenticated } = useAuth();
@@ -26,6 +27,11 @@ const Cart = () => {
         animate={{ opacity: 1 }}
         className="flex flex-col items-center justify-center min-h-screen"
       >
+        <SEO
+          title="Cart"
+          description="View your shopping cart."
+          url="https://estore.example.com/cart"
+        />
         <h1 className="text-3xl font-bold mb-4">Please Login</h1>
         <p className="text-gray-600 mb-8">You need to login to view your cart</p>
         <Link to="/login" className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90">
@@ -41,6 +47,11 @@ const Cart = () => {
       animate={{ opacity: 1 }}
       className="space-y-8 container mx-auto px-4 py-8"
     >
+      <SEO
+        title="Shopping Cart"
+        description="View your shopping cart."
+        url="https://estore.example.com/cart"
+      />
       <h1 className="text-4xl font-bold text-gray-900">Shopping Cart</h1>
       {loading ? (
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 space-y-4">

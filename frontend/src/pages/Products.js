@@ -6,6 +6,7 @@ import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import CategoryFilter from '../components/CategoryFilter';
 import api from '../services/api';
 import { CATEGORIES } from '../utils/constants';
+import SEO from '../components/SEO';
 
 const SORT_OPTIONS = [
     { label: 'Newest', value: 'newest' },
@@ -114,6 +115,11 @@ const Products = () => {
 
     return (
         <div className="container mx-auto px-4 py-8">
+            <SEO
+                title={selectedCategory !== 'All' ? `${selectedCategory} - Products` : 'All Products'}
+                description={`Browse our collection of ${selectedCategory !== 'All' ? selectedCategory : 'premium'} products.`}
+                url={`https://estore.example.com/products?category=${selectedCategory}`}
+            />
             <div className="flex flex-col md:flex-row gap-8">
 
                 {/* Sidebar Filters */}

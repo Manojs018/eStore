@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import { SAMPLE_PRODUCTS, CATEGORIES } from '../utils/constants';
+import SEO from '../components/SEO';
 
 const Landing = () => {
   const [products, setProducts] = useState([]);
@@ -44,6 +45,11 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Home"
+        description="Welcome to eStore - Discover amazing products at unbeatable prices."
+        url="https://estore.example.com/"
+      />
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

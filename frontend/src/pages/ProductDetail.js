@@ -6,6 +6,7 @@ import { ProductDetailSkeleton } from '../components/SkeletonLoader';
 import ReviewList from '../components/ReviewList';
 import api from '../services/api';
 import OptimizedImage from '../components/OptimizedImage';
+import SEO from '../components/SEO';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -74,6 +75,13 @@ const ProductDetail = () => {
       animate={{ opacity: 1 }}
       className="space-y-8"
     >
+      <SEO
+        title={product.name}
+        description={product.description}
+        image={product.imageUrl || product.image}
+        url={`https://estore.example.com/product/${product._id}`}
+        type="product"
+      />
       <button
         onClick={() => navigate('/')}
         className="text-primary hover:text-primary-dark mb-4 font-medium"
