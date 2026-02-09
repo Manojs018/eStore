@@ -43,6 +43,7 @@ const Admin = React.lazy(() => import('./pages/Admin'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const WishlistPage = React.lazy(() => import('./pages/WishlistPage'));
 const StatusPage = React.lazy(() => import('./pages/StatusPage'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 
 function App() {
   return (
@@ -88,6 +89,7 @@ function App() {
                         <Route path="/wishlist" element={<WishlistPage />} />
                         <Route path="/admin" element={<Admin />} />
                         <Route path="/status" element={<StatusPage />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/sentry-test" element={<button onClick={() => { throw new Error("Frontend Sentry Test Error"); }}>Break me</button>} />
                         <Route path="*" element={<NotFound />} />
                       </SentryRoutes>

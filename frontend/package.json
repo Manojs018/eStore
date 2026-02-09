@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.7",
     "@sentry/react": "^10.38.0",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^2.4.0",
