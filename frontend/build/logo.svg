@@ -1,11 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
     </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
   </defs>
-  <rect width="512" height="512" rx="100" fill="url(#grad1)" />
-  <path d="M368 160h-48v-16c0-35.3-28.7-64-64-64s-64 28.7-64 64v16h-48c-17.7 0-32 14.3-32 32v256c0 17.7 14.3 32 32 32h224c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-160-16c0-17.7 14.3-32 32-32s32 14.3 32 32v16h-64v-16zm192 288H112V192h288v240z" fill="white"/>
-  <text x="50%" y="85%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="60" fill="white">eStore</text>
+  
+  <!-- Background with rounded corners -->
+  <rect x="0" y="0" width="512" height="512" rx="128" fill="url(#grad1)" />
+  
+  <!-- Abstract Geometric Shape (Stylized 'e' / Tech Circuit) -->
+  <g transform="translate(106, 106) scale(0.6)" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Outer Circuit Ring -->
+    <path d="M250 50 A 200 200 0 1 0 450 250" opacity="0.8" />
+    <circle cx="450" cy="250" r="20" fill="white" stroke="none" />
+    
+    <!-- Central Abstract Shape -->
+    <path d="M150 250 L 350 250 L 350 150 A 100 100 0 0 0 150 150 Z" fill="white" fill-opacity="0.2" stroke="white" stroke-width="20" />
+    <circle cx="250" cy="250" r="40" fill="white" />
+    
+    <!-- Tech dots -->
+    <circle cx="250" cy="50" r="15" fill="white" opacity="0.6" />
+    <circle cx="50" cy="250" r="15" fill="white" opacity="0.6" />
+    <circle cx="250" cy="450" r="15" fill="white" opacity="0.6" />
+  </g>
+  
 </svg>

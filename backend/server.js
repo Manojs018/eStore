@@ -10,6 +10,20 @@ const requestId = require('./middleware/requestId');
 const errorHandler = require('./middleware/errorHandler');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const Sentry = require("@sentry/node");
+// Profiling removed due to compatibility issues
+// const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    Sentry.expressIntegration(),
+    // nodeProfilingIntegration(),
+  ],
+  // Performance Monitoring
+  tracesSampleRate: 1.0,
+  // profilesSampleRate: 1.0,
+});
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +39,9 @@ const orderRoutes = require('./routes/orders');
 
 // Create Express app
 const app = express();
+
+// Sentry Request Handler is automatically handled by expressIntegration if instrumented correctly.
+// But setupExpressErrorHandler is needed for error reporting.
 
 // Middleware
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -88,6 +105,10 @@ app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/admin', require('./routes/admin'));
 
+app.get("/debug-sentry", function mainHandler(req, res) {
+  throw new Error("My first Sentry error!");
+});
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -95,6 +116,9 @@ app.use('*', (req, res) => {
     message: 'Route not found'
   });
 });
+
+// The error handler must be registered before any other error middleware and after all controllers
+Sentry.setupExpressErrorHandler(app);
 
 // Global error handler
 app.use(errorHandler);

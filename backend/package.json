@@ -17,6 +17,8 @@
     "db:rollback": "node scripts/rollback.js"
   },
   "dependencies": {
+    "@sentry/node": "^10.38.0",
+    "@sentry/profiling-node": "^10.38.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
