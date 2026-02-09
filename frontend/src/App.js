@@ -1,5 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import * as Sentry from "@sentry/react";
+
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
@@ -14,6 +16,8 @@ import PerformanceDashboard from './components/PerformanceDashboard';
 import './App.css';
 
 import { initGA, logPageView } from './utils/analytics';
+
+const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
 const PageTracker = () => {
   const location = useLocation();
@@ -71,7 +75,7 @@ function App() {
                   <Header />
                   <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8">
                     <Suspense fallback={<PageLoader />}>
-                      <Routes>
+                      <SentryRoutes>
                         <Route path="/" element={<Landing />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/product/:id" element={<ProductDetail />} />
@@ -82,8 +86,9 @@ function App() {
                         <Route path="/register" element={<Register />} />
                         <Route path="/wishlist" element={<WishlistPage />} />
                         <Route path="/admin" element={<Admin />} />
+                        <Route path="/sentry-test" element={<button onClick={() => { throw new Error("Frontend Sentry Test Error"); }}>Break me</button>} />
                         <Route path="*" element={<NotFound />} />
-                      </Routes>
+                      </SentryRoutes>
                     </Suspense>
                   </main>
                   <Footer />
