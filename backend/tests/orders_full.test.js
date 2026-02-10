@@ -143,7 +143,13 @@ describe('Orders API Comprehensive', () => {
                 user: userId,
                 items: [],
                 totalAmount: 10,
-                paymentIntentId: 'pi_mock_123' // Same ID
+                paymentIntentId: 'pi_mock_123', // Same ID
+                shippingAddress: {
+                    street: '123 St',
+                    city: 'City',
+                    state: 'ST',
+                    zipCode: '12345'
+                }
             });
 
             const res = await request(app)

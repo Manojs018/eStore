@@ -54,7 +54,8 @@ const adminUser = {
   name: 'Admin User',
   email: 'admin@estore.com',
   password: 'admin123',
-  role: 'admin'
+  role: 'admin',
+  isEmailVerified: true
 };
 
 // Import data

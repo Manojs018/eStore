@@ -14,8 +14,12 @@ const logFormat = winston.format.combine(
 );
 
 const logger = winston.createLogger({
+    defaultMeta: { service: 'backend-service' },
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    format: logFormat,
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
     transports: [
         // Daily Rotate File for all logs
         new DailyRotateFile({
