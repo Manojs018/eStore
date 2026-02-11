@@ -9,19 +9,8 @@ const Order = require('../models/Order');
 const AuditLog = require('../models/AuditLog');
 
 // Helper function for audit logging
-const createAuditLog = async (adminId, action, targetResource, targetId, details) => {
-    try {
-        await AuditLog.create({
-            admin: adminId,
-            action,
-            targetResource,
-            targetId,
-            details
-        });
-    } catch (error) {
-        console.error('Audit Log Error:', error);
-    }
-};
+// Using centralized audit logger now
+const logAudit = require('../utils/auditLogger');
 
 // @route   GET /api/admin/stats
 // @desc    Get dashboard stats
@@ -200,9 +189,17 @@ router.put('/users/:id/role', [auth, admin], async (req, res) => {
         user.role = role;
         await user.save();
 
-        await createAuditLog(req.user._id, 'UPDATE_ROLE', 'User', user._id, {
-            previous: previousRole,
-            new: role
+        await logAudit({
+            userId: req.user._id,
+            action: 'UPDATE_ROLE', // Updated action name for consistency
+            resource: 'User',
+            resourceId: user._id,
+            details: {
+                previous: previousRole,
+                new: role
+            },
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
         });
 
         res.json({
@@ -255,8 +252,14 @@ router.post('/products', [
     try {
         const product = await Product.create(req.body);
 
-        await createAuditLog(req.user._id, 'CREATE_PRODUCT', 'Product', product._id, {
-            name: product.name
+        await logAudit({
+            userId: req.user._id,
+            action: 'CREATE',
+            resource: 'Product',
+            resourceId: product._id,
+            details: { name: product.name },
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
         });
 
         res.status(201).json({
@@ -309,7 +312,15 @@ router.put('/products/:id', [auth, admin], async (req, res) => {
             runValidators: true
         });
 
-        await createAuditLog(req.user._id, 'UPDATE_PRODUCT', 'Product', product._id, req.body);
+        await logAudit({
+            userId: req.user._id,
+            action: 'UPDATE',
+            resource: 'Product',
+            resourceId: product._id,
+            details: req.body,
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
+        });
 
         res.json({
             success: true,
@@ -354,8 +365,14 @@ router.delete('/products/:id', [auth, admin], async (req, res) => {
         product.isDeleted = true;
         await product.save();
 
-        await createAuditLog(req.user._id, 'DELETE_PRODUCT', 'Product', product._id, {
-            name: product.name
+        await logAudit({
+            userId: req.user._id,
+            action: 'DELETE',
+            resource: 'Product',
+            resourceId: product._id,
+            details: { name: product.name },
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
         });
 
         res.json({
@@ -462,9 +479,17 @@ router.put('/orders/:id', [auth, admin], async (req, res) => {
 
         await order.save();
 
-        await createAuditLog(req.user._id, 'UPDATE_ORDER_STATUS', 'Order', order._id, {
-            previous: previousStatus,
-            new: status
+        await logAudit({
+            userId: req.user._id,
+            action: 'UPDATE_STATUS', // Using custom action for order status
+            resource: 'Order',
+            resourceId: order._id,
+            details: {
+                previous: previousStatus,
+                new: status
+            },
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
         });
 
         res.json({

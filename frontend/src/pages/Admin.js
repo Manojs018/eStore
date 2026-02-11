@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
-import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, FileText, Activity, TrendingUp, Shield } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, FileText, Activity, TrendingUp, Shield, ClipboardList } from 'lucide-react';
 import AdminStats from '../components/admin/AdminStats';
 import AdminProducts from '../components/admin/AdminProducts';
 import AdminOrders from '../components/admin/AdminOrders';
@@ -11,6 +11,7 @@ import AdminLogs from '../components/admin/AdminLogs';
 import AdminMonitoring from '../components/admin/AdminMonitoring';
 import UserAnalytics from '../components/admin/UserAnalytics';
 import AdminSecurity from '../components/admin/AdminSecurity';
+import AuditLogViewer from '../components/admin/AuditLogViewer';
 
 const Admin = () => {
   const { user, logout } = useAuth();
@@ -57,6 +58,12 @@ const Admin = () => {
         return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <AdminMonitoring />
+          </motion.div>
+        );
+      case 'audit':
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <AuditLogViewer />
           </motion.div>
         );
       case 'analytics':
@@ -106,6 +113,7 @@ const Admin = () => {
           <SidebarItem id="users" label="Users" icon={Users} />
           <SidebarItem id="logs" label="System Logs" icon={FileText} />
           <SidebarItem id="monitoring" label="Monitoring" icon={Activity} />
+          <SidebarItem id="audit" label="Audit Trail" icon={ClipboardList} />
           <SidebarItem id="analytics" label="Analytics" icon={TrendingUp} />
           <SidebarItem id="security" label="Security" icon={Shield} />
         </nav>
@@ -129,6 +137,7 @@ const Admin = () => {
         <button onClick={() => setActiveTab('users')} className={`p-2 rounded ${activeTab === 'users' ? 'bg-primary text-white' : 'text-gray-600'}`}>Users</button>
         <button onClick={() => setActiveTab('logs')} className={`p-2 rounded ${activeTab === 'logs' ? 'bg-primary text-white' : 'text-gray-600'}`}>Logs</button>
         <button onClick={() => setActiveTab('monitoring')} className={`p-2 rounded ${activeTab === 'monitoring' ? 'bg-primary text-white' : 'text-gray-600'}`}>Monitor</button>
+        <button onClick={() => setActiveTab('audit')} className={`p-2 rounded ${activeTab === 'audit' ? 'bg-primary text-white' : 'text-gray-600'}`}>Audit</button>
         <button onClick={() => setActiveTab('analytics')} className={`p-2 rounded ${activeTab === 'analytics' ? 'bg-primary text-white' : 'text-gray-600'}`}>Analytics</button>
         <button onClick={() => setActiveTab('security')} className={`p-2 rounded ${activeTab === 'security' ? 'bg-primary text-white' : 'text-gray-600'}`}>Security</button>
       </div>

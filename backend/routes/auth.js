@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { authLimiter } = require('../middleware/rateLimiter');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
+const logAudit = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -286,6 +287,16 @@ router.post('/register', [
           user
         }
       });
+
+      // Audit Log
+      logAudit({
+        userId: user._id,
+        action: 'CREATE',
+        resource: 'User',
+        resourceId: user._id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
     } catch (error) {
       logger.error(error);
       user.emailVerificationToken = undefined;
@@ -428,6 +439,15 @@ router.post('/login', [
         refreshToken: refreshToken.token
       }
     });
+
+    logAudit({
+      userId: user._id,
+      action: 'LOGIN',
+      resource: 'User',
+      resourceId: user._id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     logger.error(error);
     res.status(500).json({
@@ -463,6 +483,15 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Logged out successfully'
+    });
+
+    logAudit({
+      userId: req.user.id,
+      action: 'LOGOUT',
+      resource: 'User',
+      resourceId: req.user.id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     logger.error(error);

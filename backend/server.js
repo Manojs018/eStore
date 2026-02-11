@@ -140,7 +140,8 @@ app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/admin/monitoring', require('./routes/monitoring'));
-app.use('/api/admin/logs', require('./routes/logs'));
+app.use('/api/admin/logs', require('./routes/logs')); // System logs
+app.use('/api/audit-logs', require('./routes/auditLogs')); // Audit Logs via dedicated route
 app.use('/api/analytics', require('./routes/analytics'));
 
 const cookieParser = require('cookie-parser');

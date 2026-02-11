@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const { auth, admin } = require('../middleware/auth');
+const logAudit = require('../utils/auditLogger');
 
 const { searchLimiter } = require('../middleware/rateLimiter');
 
@@ -347,8 +348,17 @@ router.post('/', auth, admin, [
     });
 
     res.status(201).json({
-      success: true,
       data: product
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'CREATE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: { name: product.name },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     console.error(error);
@@ -393,6 +403,16 @@ router.put('/:id', auth, admin, [
       success: true,
       data: product
     });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'UPDATE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: req.body,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     console.error(error);
     if (error.kind === 'ObjectId') {
@@ -429,6 +449,16 @@ router.delete('/:id', auth, admin, async (req, res) => {
     res.json({
       success: true,
       message: 'Product deleted successfully'
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'DELETE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: { name: product.name },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     console.error(error);

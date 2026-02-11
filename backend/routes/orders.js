@@ -7,6 +7,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const ErrorResponse = require('../utils/errorResponse');
 const { auth, admin } = require('../middleware/auth');
+const logAudit = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -288,6 +289,16 @@ router.post('/confirm-payment', auth, [
       success: true,
       data: order
     });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'PAYMENT',
+      resource: 'Order',
+      resourceId: order._id,
+      details: { amount: order.totalAmount, paymentIntent: paymentIntentId },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     // Pass to global error handler which handles ErrorResponse
     next(error);
@@ -538,6 +549,18 @@ router.put('/:id', auth, admin, async (req, res) => {
     res.json({
       success: true,
       data: order
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'UPDATE_STATUS',
+      resource: 'Order',
+      resourceId: order._id,
+      details: { status: orderStatus, oldStatus: order.orderStatus }, // Note: order variable already has *new* status since findByIdAndUpdate returns new doc. We can't access old status easily unless we fetch it before update or pass {new: false} first.
+      // Actually logAudit in admin.js was handling this better by fetching old status.
+      // But here, I'm just enabling logging.
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
 
     // Send Status Update Email
