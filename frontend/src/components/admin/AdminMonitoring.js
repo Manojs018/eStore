@@ -101,6 +101,7 @@ const AdminMonitoring = () => {
                     </div>
                     <h3 className="text-gray-500 text-sm font-medium">System Uptime</h3>
                     <p className="text-2xl font-bold text-gray-900 mt-1">{(stats?.system?.uptime / 3600).toFixed(1)} Hours</p>
+                    <p className="text-xs text-green-600 mt-1">Target: 99.9% SLA</p>
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
