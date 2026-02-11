@@ -1,175 +1,177 @@
 # Deployment Guide
 
-This guide provides step-by-step instructions for deploying the eStore application to production. We recommend using **Railway** or **Render** as they offer excellent support for Node.js and Docker applications, but the principles apply to **Heroku** and others as well.
+This guide provides comprehensive instructions for deploying the eStore application using various methods: **Docker Compose**, **Kubernetes**, and **PaaS providers** (Railway/Heroku).
 
 ---
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have dependencies ready:
-1.  **GitHub Account**: Your code must be pushed to a repository.
-2.  **MongoDB Atlas Account**: For a production-ready database.
-3.  **Stripe Account**: For payment processing (use Test mode API keys).
-4.  **Hosting Account**: Railway, Render, or Heroku.
+Before you begin, ensure you have:
+
+1.  **Git**: Installed and configured.
+2.  **Docker & Docker Compose**: For containerized deployment.
+3.  **Kubectl & Minikube/Kind** (Optional): For Kubernetes deployment.
+4.  **MongoDB Atlas Account** (Optional): If using a cloud database instead of a local container.
+5.  **Stripe Account**: For payment processing (Test keys).
 
 ---
 
-## 🗄️ Step 1: Database Setup (MongoDB Atlas)
+## 🔑 Environment Variables Reference
 
-1.  **Create an Account**: Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and sign up.
-2.  **Deploy a Cluster**: Create a free "Shared" cluster.
-3.  **Create Database User**:
-    *   Go to **Database Access**.
-    *   Add a new database user (e.g., `estore_admin`).
-    *   **Important**: Use a strong password and save it securely.
-4.  **Network Access**:
-    *   Go to **Network Access**.
-    *   Add IP Address -> "Allow Access from Anywhere" (`0.0.0.0/0`) (Required for cloud hosting).
-5.  **Get Connection String**:
-    *   Click **Connect** on your cluster.
-    *   Select **Drivers** (Node.js).
-    *   Copy the connection string. It looks like: `mongodb+srv://<username>:<password>@cluster0.mongodb.net/?retryWrites=true&w=majority`.
-
----
-
-## 🚀 Step 2: Deployment (Railway.app Recommended)
-
-Railway is easiest because it detects the repository structure automatically.
-
-### 1. Project Setup
-1.  Log in to [Railway.app](https://railway.app/).
-2.  Click **New Project** -> **Deploy from GitHub repo**.
-3.  Select your `eStore` repository.
-4.  Railway will likely detect two distinct root folders (`backend` and `frontend`) or just the root.
-
-### 2. Deploying Backend
-1.  Add a service within Railway for the **Backend**.
-2.  **Settings**:
-    *   Root Directory: `backend`
-    *   Build Command: `npm install`
-    *   Start Command: `npm start`
-3.  **Variables** (Environment Variables):
-    Add the following variables:
-    *   `NODE_ENV`: `production`
-    *   `PORT`: `5000` (or let Railway assign one)
-    *   `MONGO_URI`: (Paste your Atlas connection string, replace `<password>`)
-    *   `JWT_SECRET`: (Generate a long random string)
-    *   `STRIPE_SECRET_KEY`: (Your Stripe Secret Key `sk_test_...`)
-    *   `CLIENT_URL`: `https://<your-frontend-domain>.up.railway.app` (You will look this up after deploying frontend)
-    *   `ADMIN_URL`: `https://<your-frontend-domain>.up.railway.app`
-    *   `EMAIL_USER`: (Your email)
-    *   `EMAIL_PASS`: (Your App Password)
-    *   `ADMIN_EMAIL`: (Your admin email)
-
-### 3. Deploying Frontend
-1.  Add a second service for the **Frontend**.
-2.  **Settings**:
-    *   Root Directory: `frontend`
-    *   Build Command: `npm install && npm run build`
-    *   Start Command: `npm install -g serve && serve -s build -l 3000` (or use Nginx Dockerfile if preferred)
-3.  **Variables**:
-    *   `REACT_APP_STRIPE_PUBLISHABLE_KEY`: (Your Stripe Public Key `pk_test_...`)
-4.  **Networking**:
-    *   Expose this service to the public internet (Railway will generate a domain).
-    *   Start port: `3000`.
-
-### 4. Linking
-1.  Copy the **Frontend Domain** (e.g., `estore-frontend.up.railway.app`) and update the `CLIENT_URL` in the **Backend** variables.
-2.  Copy the **Backend Domain** (e.g., `estore-backend.up.railway.app`) and update the `package.json` proxy in Frontend OR configure Nginx proxying.
-    *   *Note*: For React production, `proxy` in package.json doesn't work. You must set the API base URL in your frontend code using an environment variable like `REACT_APP_API_URL`.
-    *   You may need to update `frontend/src/services/api.js` (or created axios instance) to use `process.env.REACT_APP_API_URL`.
-
----
-
-## 🚢 Step 2 (Alternative): Heroku
-
-1.  **Install Heroku CLI**: `npm install -g heroku`.
-2.  **Login**: `heroku login`.
+These variables are required for the application to function correctly.
 
 ### Backend
-1.  Create app: `heroku create estore-api`.
-2.  Set configs:
-    ```bash
-    heroku config:set MONGO_URI="mongodb+srv..." -a estore-api
-    heroku config:set JWT_SECRET="secret" -a estore-api
-    # ... set all other env vars
-    ```
-3.  Deploy:
-    ```bash
-    git subtree push --prefix backend heroku main
-    ```
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `NODE_ENV` | Environment mode | `production` |
+| `PORT` | Server port | `5000` |
+| `MONGO_URI` | MongoDB connection string | `mongodb://admin:password@mongodb:27017/estore?authSource=admin` |
+| `JWT_SECRET` | Secret for signing JWTs | `your_long_random_secret_string` |
+| `STRIPE_SECRET_KEY` | Stripe Secret Key | `sk_test_...` |
+| `CLIENT_URL` | Frontend URL for CORS | `http://localhost:3000` |
+| `ADMIN_URL` | Admin URL for emails | `http://localhost:3000` |
+| `EMAIL_USER` | Email for sending notifications | `verify@estore.com` |
+| `EMAIL_PASS` | Email password/App password | `your_email_password` |
+| `ADMIN_EMAIL` | Admin email address | `admin@estore.com` |
 
 ### Frontend
-1.  Create app: `heroku create estore-ui`.
-2.  Set buildpack: `heroku buildpacks:set mars/create-react-app -a estore-ui`.
-3.  Deploy:
+
+| Variable | Description | Example |
+| :--- | :--- | :--- |
+| `REACT_APP_STRIPE_PUBLISHABLE_KEY` | Stripe Public Key | `pk_test_...` |
+| `REACT_APP_API_URL` | Backend API URL | `http://localhost:5000/api` |
+
+---
+
+## 🐳 Docker Deployment (Docker Compose)
+
+The easiest way to run the full stack (Frontend, Backend, MongoDB) locally or on a VPS.
+
+### 1. Configure Environment
+*   **Backend**: Ensure `backend/.env` exists with the variables listed above.
+    *   *Note*: `MONGO_URI` is automatically overridden by Docker Compose to point to the local MongoDB container.
+*   **Frontend**: Ensure `frontend/.env` exists with `REACT_APP_` variables for the build process.
+
+### 2. Build and Run
+Run the following command in the project root:
+
+```bash
+docker-compose up --build -d
+```
+
+### 3. Verify Deployment
+*   **Frontend**: [http://localhost:3000](http://localhost:3000)
+*   **Backend Health**: [http://localhost:5000/health](http://localhost:5000/health)
+*   **Swagger API Docs**: [http://localhost:5000/api-docs](http://localhost:5000/api-docs)
+
+### 4. Stop Services
+```bash
+docker-compose down
+```
+
+---
+
+## ☸️ Kubernetes Deployment
+
+Deploy to a Kubernetes cluster (Minikube, EKS, GKE, etc.).
+
+### 1. Prerequisites
+*   Ensure `kubectl` is configured to point to your cluster.
+*   Navigate to the `k8s/` directory.
+
+### 2. Apply Configuration & Secrets
+**Important**: modifying `k8s/secret.yaml` with your actual base64 encoded secrets before applying.
+
+```bash
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+```
+
+### 3. Deploy Database (MongoDB)
+If you are NOT using an external MongoDB (Atlas), deploy the in-cluster MongoDB:
+
+```bash
+kubectl apply -f k8s/mongo.yaml
+```
+
+### 4. Deploy Backend & Frontend
+```bash
+kubectl apply -f k8s/backend.yaml
+kubectl apply -f k8s/frontend.yaml
+```
+
+### 5. Expose Services (Ingress)
+Ensure you have an Ingress Controller (like Nginx) installed.
+
+```bash
+kubectl apply -f k8s/ingress.yaml
+```
+
+### 6. Verify Status
+```bash
+kubectl get pods
+kubectl get services
+kubectl get ingress
+```
+
+---
+
+## ☁️ PaaS Deployment (Railway/Heroku/Render)
+
+### Railway (Recommended)
+1.  **Connect GitHub**: Login to Railway and select "Deploy from GitHub repo".
+2.  **Select Repo**: Choose `eStore`.
+3.  **Variables**: Add all Backend Environment Variables in the project settings.
+    *   *Note*: Railway provides a MongoDB service plugin you can add easily.
+4.  **Frontend**: If creating a separate service for frontend, ensure build command is `npm run build` and start command serves the `build` folder.
+
+### Heroku
+1.  **Install CLI**: `npm install -g heroku` & `heroku login`.
+2.  **Backend**:
     ```bash
+    heroku create estore-api
+    heroku config:set MONGO_URI="..." JWT_SECRET="..." ...
+    git subtree push --prefix backend heroku main
+    ```
+3.  **Frontend**:
+    ```bash
+    heroku create estore-ui
+    heroku buildpacks:set mars/create-react-app
     git subtree push --prefix frontend heroku main
     ```
 
 ---
 
-## ✅ Step 3: Post-Deployment Checks
-
-Once deployed, perform these checks:
-
-1.  **Health Check**: Visit `https://<your-backend-url>/health`.
-    *   Expected: `{"status": "ok", "checks": { "database": "ok", ... }}`
-2.  **Frontend Load**: Visit your frontend URL. The homepage should load without errors.
-3.  **Registration**: Try to register a new user.
-    *   Check if you receive the **Welcome Email**.
-4.  **Login**: Log in with the new user.
-5.  **Payment (Test)**: Add an item to cart and proceed to checkout using Stripe Test Card (e.g., `4242 4242...`).
-
----
-
 ## 🔧 Troubleshooting
 
-### Database Connection Error
-*   **Symptom**: `GET /health` shows `("status": "error", "database": "error")` or logs show `MongooseServerSelectionError`.
-*   **Fix**: Check MongoDB Atlas **Network Access**. Ensure `0.0.0.0/0` is whitelisted. Verify connection string password matches exactly.
+### Docker Issues
+*   **Container fails to start**: Check logs with `docker-compose logs <service_name>`.
+*   **MongoDB Connection Error**: Ensure `MONGO_URI` in backend matches the container name (e.g., `mongodb://mongodb:27017...`) or Atlas URI.
+*   **Hot Reload not working**: In Windows, you may need to enable polling or check volume mounts.
 
-### CORS Error
-*   **Symptom**: Frontend shows `Access to XMLHttpRequest blocked by CORS policy`.
-*   **Fix**: Ensure `CLIENT_URL` environment variable in the Backend exactly matches your Frontend URL (no trailing slash).
+### Kubernetes Issues
+*   **CrashLoopBackOff**: Check pod logs: `kubectl logs <pod-name>`.
+*   **Pending Pods**: Check describe for resource issues: `kubectl describe pod <pod-name>`.
+*   **Ingress 404**: Ensure the Ingress Controller is running and the `host` in `ingress.yaml` matches your domain (or remove host for localhost testing).
 
-### Stripe Error
-*   **Symptom**: 500 Error during checkout.
-*   **Fix**: Ensure `STRIPE_SECRET_KEY` is set in Backend and `REACT_APP_STRIPE_PUBLISHABLE_KEY` is set in Frontend.
-
-### Admin Access
-*   **How to create admin?**: You cannot register as admin.
-    *   **Fix**: Connect to MongoDB Atlas using Compass. Find your user document. Edit `role` from `user` to `admin`.
+### Deployment Issues
+*   **CORS Error**: Ensure `CLIENT_URL` env var matches the frontend domain exactly.
+*   **White Screen (Frontend)**: Check browser console for errors. Often due to missing `REACT_APP_...` env vars at build time.
 
 ---
 
-## 🧪 Staging Environment
+## 📊 Monitoring & Health Checks
 
-To avoid testing directly in production, use a Staging Environment.
+### Health Endpoint
+The backend exposes a health check endpoint for uptime monitoring:
+*   **URL**: `/health`
+*   **Response**: `{"status": "ok", "timestamp": "...", "uptime": ...}`
 
-### Setup Staging
-1.  **Branching**: We use a `staging` branch. Pushing to this branch triggers the Staging Deployment workflow.
-2.  **Infrastructure**: Duplicate your Production services (e.g., `estore-staging-backend` and `estore-staging-frontend`).
-3.  **Database**: Create a separate MongoDB database (e.g., `estore-staging`).
-4.  **GitHub Secrets**: Add these Staging-specific secrets to your repository:
-    *   `STAGING_MONGODB_URI`
-    *   `STAGING_STRIPE_SECRET_KEY`
-    *   `STAGING_CLIENT_URL`
+### Logging
+*   **Docker**: `docker-compose logs -f backend`
+*   **Kubernetes**: `kubectl logs -f -l app=backend`
+*   **Files**: Logs are also written to `backend/logs/` if configured (ensure volume persistence).
 
-### Workflow
-1.  Develop on `develop` or feature branches.
-2.  Push to `staging` to deploy.
-3.  Test on the Staging URL.
-4.  If successful, merge `staging` into `main` to deploy to Production.
-
----
-
-## 🔒 GitHub Secrets (for CI/CD)
-
-If using the GitHub Actions pipeline (`cicd.yml`), verify these secrets in **Settings > Secrets**:
-*   `MONGODB_URI`
-*   `JWT_SECRET`
-*   `STRIPE_SECRET_KEY`
-*   `STRIPE_PUBLIC_KEY`
-*   `EMAIL_USER`
-*   `EMAIL_PASS`
+### Metrics
+*   Integration with tools like **Sentry** and **New Relic** is supported if environment variables are configured (`SENTRY_DSN`, `NEW_RELIC_LICENSE_KEY`).
