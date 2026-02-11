@@ -49,7 +49,22 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Security Middleware
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "js.stripe.com", ...(process.env.NODE_ENV === 'production' ? [] : ["'unsafe-eval'"])],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "api.stripe.com", "*.sentry.io", "ws:", "wss:"],
+      frameSrc: ["'self'", "js.stripe.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 // Enforce HTTPS in Production
 if (process.env.NODE_ENV === 'production') {
