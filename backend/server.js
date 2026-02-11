@@ -48,7 +48,40 @@ const app = express();
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Security Middleware
-app.use(helmet());
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "js.stripe.com", ...(process.env.NODE_ENV === 'production' ? [] : ["'unsafe-eval'"])],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+      fontSrc: ["'self'", "fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "api.stripe.com", "*.sentry.io", "ws:", "wss:"],
+      frameSrc: ["'self'", "js.stripe.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Enforce HTTPS in Production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+
+  // HSTS (Strict-Transport-Security)
+  app.use(helmet.hsts({
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }));
+}
 app.use(requestId);
 app.use(requestLogger);
 
@@ -105,8 +138,55 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/payment', require('./routes/payment'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/admin/logs', require('./routes/logs')); // Added logs route
+// Admin Routes (Protected + IP Whitelisted)
+const checkIp = require('./middleware/checkIpWhitelist');
+// Apply IP Check only to admin, monitoring, and audit logs
+app.use('/api/admin', checkIp, require('./routes/admin'));
+app.use('/api/admin/allowed-ips', checkIp, require('./routes/ipWhitelist')); // Manage IPs
+app.use('/api/admin/monitoring', checkIp, require('./routes/monitoring'));
+app.use('/api/admin/logs', checkIp, require('./routes/logs')); // System logs
+app.use('/api/audit-logs', checkIp, require('./routes/auditLogs')); // Audit Logs via dedicated route
+// Analytics might be user facing or admin only? Usually admin.
+app.use('/api/analytics', checkIp, require('./routes/analytics'));
+
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
+
+app.use(cookieParser());
+
+// CSRF Protection
+// We enable CSRF protection for all routes except webhooks which are handled separately (and typically use signatures)
+// However, since webhooks are typically POST/PUT, we need to ensure they are excluded or handled before this middleware if they don't have the token.
+// The webhooks route is already mounted BEFORE express.json/urlencoded and other body parsers, and csurf usually requires body-parser or cookie-parser.
+// Let's apply CSRF after body parsing.
+
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict'
+  }
+});
+
+// Apply CSRF to all standard API routes EXCEPT webhooks (which are already defined above this block)
+// Note: Webhooks route is defined at line 84, so it won't be affected by this middleware added here.
+app.use(csrfProtection);
+
+// CSRF Token Endpoint
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+// Handle CSRF Errors
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Invalid CSRF token'
+    });
+  }
+  next(err);
+});
 
 app.get("/debug-sentry", function mainHandler(req, res) {
   throw new Error("My first Sentry error!");
@@ -125,6 +205,8 @@ Sentry.setupExpressErrorHandler(app);
 
 // Global error handler
 app.use(errorHandler);
+
+const startMonitoring = require('./jobs/monitor');
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -146,6 +228,8 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+
+  startMonitoring();
 
   app.listen(PORT, () => {
     logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

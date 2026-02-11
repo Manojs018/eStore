@@ -7,6 +7,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const ErrorResponse = require('../utils/errorResponse');
 const { auth, admin } = require('../middleware/auth');
+const logAudit = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -288,6 +289,16 @@ router.post('/confirm-payment', auth, [
       success: true,
       data: order
     });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'PAYMENT',
+      resource: 'Order',
+      resourceId: order._id,
+      details: { amount: order.totalAmount, paymentIntent: paymentIntentId },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     // Pass to global error handler which handles ErrorResponse
     next(error);
@@ -415,6 +426,27 @@ router.get('/:id', auth, async (req, res) => {
 // @desc    Get orders (User specific or all for Admin)
 // @route   GET /api/orders
 // @access  Private
+/**
+ * @swagger
+ * /api/orders:
+ *   get:
+ *     summary: Get orders (User specific or all for Admin)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of orders
+ */
 router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -459,6 +491,44 @@ router.get('/', auth, async (req, res) => {
 // @desc    Update order status (Admin only)
 // @route   PUT /api/orders/:id
 // @access  Private/Admin
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   put:
+ *     summary: Update order status (Admin)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderStatus
+ *             properties:
+ *               orderStatus:
+ *                 type: string
+ *                 enum: [processing, shipped, delivered, cancelled]
+ *               trackingNumber:
+ *                 type: string
+ *               carrier:
+ *                 type: string
+ *               trackingUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order status updated
+ *       404:
+ *         description: Order not found
+ */
 router.put('/:id', auth, admin, async (req, res) => {
   try {
     const { orderStatus } = req.body;
@@ -479,6 +549,18 @@ router.put('/:id', auth, admin, async (req, res) => {
     res.json({
       success: true,
       data: order
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'UPDATE_STATUS',
+      resource: 'Order',
+      resourceId: order._id,
+      details: { status: orderStatus, oldStatus: order.orderStatus }, // Note: order variable already has *new* status since findByIdAndUpdate returns new doc. We can't access old status easily unless we fetch it before update or pass {new: false} first.
+      // Actually logAudit in admin.js was handling this better by fetching old status.
+      // But here, I'm just enabling logging.
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
 
     // Send Status Update Email

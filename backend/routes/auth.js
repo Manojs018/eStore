@@ -9,8 +9,164 @@ const sendEmail = require('../utils/sendEmail');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const logger = require('../utils/logger');
 const { authLimiter } = require('../middleware/rateLimiter');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
+const logAudit = require('../utils/auditLogger');
 
 const router = express.Router();
+
+// @desc    Setup 2FA (Generate Secret)
+// @route   POST /api/auth/2fa/setup
+// @access  Private
+router.post('/2fa/setup', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const secret = speakeasy.generateSecret({
+      name: `eStore (${req.user.email})`
+    });
+
+    // Save temporary secret to user (or return it and save only when verified)
+    // Better practice: save it but mark as not enabled yet.
+    // However, since we defined 'twoFactorSecret' in model, let's use that but we need a way to know if it's confirmed.
+    // For simplicity, we'll store it but check 'twoFactorEnabled' flag.
+
+    // Actually, saving it now implies we overwrite any existing one.
+    // If user already has 2FA enabled, maybe we should ask for current code first? 
+    // For now, let's assume this is setting it up from scratch.
+
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+    user.twoFactorSecret = secret.base32;
+    await user.save();
+
+    // Generate QR Code
+    qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Error generating QR code' });
+      }
+      res.json({
+        success: true,
+        secret: secret.base32,
+        qrCode: data_url
+      });
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Verify 2FA (Enable it)
+// @route   POST /api/auth/2fa/verify
+// @access  Private
+router.post('/2fa/verify', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      user.twoFactorEnabled = true;
+
+      // Generate backup codes
+      const recoveryCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex'));
+      user.twoFactorRecoveryCodes = recoveryCodes;
+
+      await user.save();
+
+      res.json({ success: true, message: '2FA Enabled', recoveryCodes });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Disable 2FA
+// @route   POST /api/auth/2fa/disable
+// @access  Private
+router.post('/2fa/disable', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      user.twoFactorEnabled = false;
+      user.twoFactorSecret = undefined;
+      user.twoFactorRecoveryCodes = undefined;
+      await user.save();
+
+      res.json({ success: true, message: '2FA Disabled' });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Validate 2FA (Login Step 2)
+// @route   POST /api/auth/2fa/validate
+// @access  Public (uses tempToken)
+router.post('/2fa/validate', async (req, res) => {
+  const { tempToken, token } = req.body;
+  if (!tempToken || !token) {
+    return res.status(400).json({ success: false, message: 'Missing token or code' });
+  }
+
+  try {
+    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    if (!decoded || decoded.scope !== '2fa_login') {
+      return res.status(401).json({ success: false, message: 'Invalid or expired session' });
+    }
+
+    const user = await User.findById(decoded.id).select('+twoFactorSecret');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      // Generate real tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = await generateRefreshToken(user, req.ip);
+
+      logger.info(`User passed 2FA: ${user.email}`);
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user,
+          token: accessToken,
+          refreshToken: refreshToken.token
+        }
+      });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+  } catch (error) {
+    logger.error('2FA Validate Error' + error.message);
+    res.status(401).json({ success: false, message: 'Invalid or expired session' });
+  }
+});
 
 /**
  * @swagger
@@ -131,6 +287,16 @@ router.post('/register', [
           user
         }
       });
+
+      // Audit Log
+      logAudit({
+        userId: user._id,
+        action: 'CREATE',
+        resource: 'User',
+        resourceId: user._id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
     } catch (error) {
       logger.error(error);
       user.emailVerificationToken = undefined;
@@ -247,6 +413,17 @@ router.post('/login', [
       });
     }
 
+    // Check 2FA
+    if (user.twoFactorEnabled) {
+      const tempToken = jwt.sign({ id: user._id, scope: '2fa_login' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+      return res.json({
+        success: true,
+        twoFactorRequired: true,
+        tempToken,
+        message: '2FA verification required'
+      });
+    }
+
     // Generate Tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, req.ip);
@@ -261,6 +438,15 @@ router.post('/login', [
         token: accessToken,
         refreshToken: refreshToken.token
       }
+    });
+
+    logAudit({
+      userId: user._id,
+      action: 'LOGIN',
+      resource: 'User',
+      resourceId: user._id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     logger.error(error);
@@ -298,6 +484,15 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
       success: true,
       message: 'Logged out successfully'
     });
+
+    logAudit({
+      userId: req.user.id,
+      action: 'LOGOUT',
+      resource: 'User',
+      resourceId: req.user.id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     logger.error(error);
     res.status(500).json({
@@ -310,6 +505,29 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
 // @desc    Refresh Token
 // @route   POST /api/auth/refresh
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New tokens generated
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -436,6 +654,28 @@ router.get('/users', require('../middleware/auth').auth, require('../middleware/
 // @desc    Forgot Password
 // @route   POST /api/auth/forgot-password
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset email sent
+ */
 router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -495,6 +735,36 @@ router.post('/forgot-password', async (req, res) => {
 // @desc    Reset Password
 // @route   PUT /api/auth/reset-password/:resettoken
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/reset-password/{resettoken}:
+ *   put:
+ *     summary: Reset password using token
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: resettoken
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password updated and logged in
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.put('/reset-password/:resettoken', async (req, res) => {
   try {
     // Get hashed token
@@ -545,6 +815,24 @@ router.put('/reset-password/:resettoken', async (req, res) => {
 // @desc    Verify Email
 // @route   GET /api/auth/verifyemail/:token
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/verifyemail/{token}:
+ *   get:
+ *     summary: Verify email address
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email verified and logged in
+ *       400:
+ *         description: Invalid tokens
+ */
 router.get('/verifyemail/:token', async (req, res) => {
   try {
     const emailVerificationToken = crypto
@@ -611,6 +899,31 @@ router.get('/verifyemail/:token', async (req, res) => {
 // @desc    Resend Verification Email
 // @route   POST /api/auth/resend-verification
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: Resend email verification link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification email sent
+ *       400:
+ *         description: Email already verified
+ *       404:
+ *         description: User not found
+ */
 router.post('/resend-verification', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
 ], async (req, res) => {

@@ -4,9 +4,43 @@ const { check, validationResult } = require('express-validator');
 const Review = require('../models/Review');
 const { auth } = require('../middleware/auth');
 
+/**
+ * @swagger
+ * tags:
+ *   name: Reviews
+ *   description: Product review management
+ */
+
 // @route   GET /api/reviews/:productId
 // @desc    Get reviews for a product
 // @access  Public
+/**
+ * @swagger
+ * /api/reviews/{productId}:
+ *   get:
+ *     summary: Get reviews for a product
+ *     tags: [Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Reviews per page
+ *     responses:
+ *       200:
+ *         description: List of reviews
+ */
 router.get('/:productId', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -36,6 +70,44 @@ router.get('/:productId', async (req, res) => {
 // @route   POST /api/reviews/:productId
 // @desc    Add a review
 // @access  Private
+/**
+ * @swagger
+ * /api/reviews/{productId}:
+ *   post:
+ *     summary: Add a review for a product
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *               - comment
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Review added
+ *       400:
+ *         description: Already reviewed or invalid input
+ *       401:
+ *         description: Unauthorized
+ */
 router.post(
     '/:productId',
     [
@@ -88,6 +160,29 @@ router.post(
 // @route   PUT /api/reviews/:id/vote
 // @desc    Vote review as helpful
 // @access  Private
+/**
+ * @swagger
+ * /api/reviews/{id}/vote:
+ *   put:
+ *     summary: Mark a review as helpful
+ *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Review ID
+ *     responses:
+ *       200:
+ *         description: Vote toggled
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Review not found
+ */
 router.put('/:id/vote', auth, async (req, res) => {
     try {
         const review = await Review.findById(req.params.id);

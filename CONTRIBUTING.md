@@ -133,6 +133,20 @@ For feature requests:
 3. Once approved, your PR will be merged
 4. Your changes will be included in the next release
 
+## 🔧 Troubleshooting
+
+Common issues you might encounter:
+
+### Backend
+- **MongoDB Connection Error**: Ensure MongoDB is running locally or your `MONGO_URI` is correct.
+- **Test Failures**: Ensure you are not running the server on port 5000 while running tests.
+- **Environment Variables**: Check that `.env` is created from `.env.example`.
+
+### Frontend
+- **CORS Error**: Ensure the backend is running and `BASE_URL` matches.
+- **Module not found**: Try deleting `node_modules` and running `npm install` again.
+- **Build Fails**: Check for ESLint errors or unused variables.
+
 ## Questions?
 
 - Check existing issues and discussions

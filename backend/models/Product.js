@@ -1,5 +1,49 @@
 const mongoose = require('mongoose');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       required:
+ *         - name
+ *         - description
+ *         - price
+ *         - category
+ *         - stock
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Auto-generated ID
+ *         name:
+ *           type: string
+ *           description: Product name
+ *         description:
+ *           type: string
+ *           description: Product description
+ *         price:
+ *           type: number
+ *           description: Product price
+ *         category:
+ *           type: string
+ *           enum: [electronics, components, tools, other]
+ *         stock:
+ *           type: integer
+ *           description: Stock quantity
+ *         imageUrl:
+ *           type: string
+ *           description: URL of product image
+ *         averageRating:
+ *           type: number
+ *           description: Average rating (0-5)
+ *         numOfReviews:
+ *           type: integer
+ *           description: Number of reviews
+ *         isActive:
+ *           type: boolean
+ *           description: Product visibility status
+ */
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -61,5 +105,7 @@ productSchema.index({ category: 1 });
 productSchema.index({ name: 1 });
 productSchema.index({ price: 1 }); // Often filtered/sorted
 productSchema.index({ averageRating: -1 }); // Often sorted
+
+productSchema.plugin(require('../plugins/performanceMonitor'));
 
 module.exports = mongoose.model('Product', productSchema);

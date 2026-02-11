@@ -2,6 +2,42 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *         - password
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Auto-generated ID
+ *         name:
+ *           type: string
+ *           description: User name
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: User email
+ *         role:
+ *           type: string
+ *           enum: [user, admin]
+ *           description: User role
+ *         isActive:
+ *           type: boolean
+ *           description: Account status
+ *         isEmailVerified:
+ *           type: boolean
+ *           description: Email verification status
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Registration date
+ */
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -43,7 +79,19 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   emailVerificationToken: String,
-  emailVerificationExpire: Date
+  emailVerificationExpire: Date,
+  twoFactorSecret: {
+    type: String,
+    select: false
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorRecoveryCodes: {
+    type: [String],
+    select: false
+  }
 }, {
   timestamps: true
 });
@@ -106,5 +154,7 @@ userSchema.methods.toJSON = function () {
   delete userObject.password;
   return userObject;
 };
+
+userSchema.plugin(require('../plugins/performanceMonitor'));
 
 module.exports = mongoose.model('User', userSchema);

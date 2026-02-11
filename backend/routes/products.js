@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const { auth, admin } = require('../middleware/auth');
+const logAudit = require('../utils/auditLogger');
 
 const { searchLimiter } = require('../middleware/rateLimiter');
 
@@ -93,6 +94,49 @@ router.get('/', searchLimiter, async (req, res) => {
 // @desc    Filter products with advanced options
 // @route   GET /api/products/filter
 // @access  Public
+/**
+ * @swagger
+ * /api/products/filter:
+ *   get:
+ *     summary: Filter and search products
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Product category
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: number
+ *         description: Minimum average rating
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [price-asc, price-desc, rating]
+ *         description: Sort order
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Filtered product list with facets
+ */
 router.get('/filter', searchLimiter, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -304,8 +348,17 @@ router.post('/', auth, admin, [
     });
 
     res.status(201).json({
-      success: true,
       data: product
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'CREATE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: { name: product.name },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     console.error(error);
@@ -350,6 +403,16 @@ router.put('/:id', auth, admin, [
       success: true,
       data: product
     });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'UPDATE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: req.body,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   } catch (error) {
     console.error(error);
     if (error.kind === 'ObjectId') {
@@ -386,6 +449,16 @@ router.delete('/:id', auth, admin, async (req, res) => {
     res.json({
       success: true,
       message: 'Product deleted successfully'
+    });
+
+    logAudit({
+      userId: req.user._id,
+      action: 'DELETE',
+      resource: 'Product',
+      resourceId: product._id,
+      details: { name: product.name },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
     });
   } catch (error) {
     console.error(error);
