@@ -1,219 +1,363 @@
-import React, { useState } from 'react';
-import { Shield, Lock, Smartphone, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { toast } from 'react-hot-toast';
-import { useAuth } from '../../contexts/AuthContext';
+import { Shield, Plus, Trash2, Globe, AlertTriangle, QrCode, Lock, Unlock, Copy, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-const AdminSecurity = () => {
-    const { user, login } = useAuth(); // We might need to refresh user profile
-    const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState('initial'); // initial, qr, verify, success
-    const [qrCode, setQrCode] = useState(null);
-    const [secret, setSecret] = useState(null);
-    const [code, setCode] = useState('');
-    const [backupCodes, setBackupCodes] = useState([]);
+const AdminSecurity = ({ user }) => {
+    // --- IP Whitelist State ---
+    const [allowedIps, setAllowedIps] = useState([]);
+    const [newIp, setNewIp] = useState('');
+    const [label, setLabel] = useState('');
+    const [ipLoading, setIpLoading] = useState(false);
 
-    // Check if 2FA is already enabled based on user profile
-    // Note: user object in context might not have this field if it wasn't populated on login/profile fetch.
-    // We should ideally fetch fresh profile or assume user object has it if we updated User model and selected it.
-    // By default 'twoFactorEnabled' is in user model, so it should be in 'user' context if we fetch profile.
-    const [isEnabled, setIsEnabled] = useState(user?.twoFactorEnabled || false);
+    // --- 2FA State ---
+    const [qrCode, setQrCode] = useState('');
+    const [secret, setSecret] = useState('');
+    const [token, setToken] = useState('');
+    const [recoveryCodes, setRecoveryCodes] = useState([]);
+    const [showBackupCodes, setShowBackupCodes] = useState(false);
+    const [twoFaLoading, setTwoFaLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(user);
 
-    React.useEffect(() => {
-        // Fetch latest profile to get accurate 2FA status
-        api.get('/auth/profile').then(res => {
-            if (res.data.success) {
-                setIsEnabled(res.data.data.twoFactorEnabled);
-            }
-        }).catch(err => console.error(err));
-    }, []);
+    useEffect(() => {
+        fetchAllowedIps();
+        if (user) {
+            setCurrentUser(user);
+        }
+    }, [user]);
 
-    const startSetup = async () => {
-        setLoading(true);
+    // --- IP Management Functions ---
+    const fetchAllowedIps = async () => {
         try {
-            const res = await api.post('/auth/2fa/setup');
-            if (res.data.success) {
-                setQrCode(res.data.qrCode);
-                setSecret(res.data.secret);
-                setStep('qr');
+            const response = await api.get('/admin/allowed-ips');
+            if (response.data.success) {
+                setAllowedIps(response.data.data);
             }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to start 2FA setup');
-        } finally {
-            setLoading(false);
+        } catch (error) {
+            console.error('Failed to fetch IPs', error);
         }
     };
 
-    const verifySetup = async () => {
-        if (!code) return;
-        setLoading(true);
+    const handleAddIp = async (e) => {
+        e.preventDefault();
+        setIpLoading(true);
         try {
-            const res = await api.post('/auth/2fa/verify', { token: code });
-            if (res.data.success) {
-                setIsEnabled(true);
-                setBackupCodes(res.data.recoveryCodes);
-                setStep('success');
+            const response = await api.post('/admin/allowed-ips', { ip: newIp, label });
+            if (response.data.success) {
+                toast.success('IP Added to Whitelist');
+                setAllowedIps([response.data.data, ...allowedIps]);
+                setNewIp('');
+                setLabel('');
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to add IP');
+        } finally {
+            setIpLoading(false);
+        }
+    };
+
+    const handleDeleteIp = async (id) => {
+        if (!window.confirm('Are you sure you want to remove this IP?')) return;
+        try {
+            const response = await api.delete(`/admin/allowed-ips/${id}`);
+            if (response.data.success) {
+                toast.success('IP Removed');
+                setAllowedIps(allowedIps.filter(ip => ip._id !== id));
+            }
+        } catch (error) {
+            toast.error('Failed to remove IP');
+        }
+    };
+
+    // --- 2FA Functions ---
+    const setupTwoFactor = async () => {
+        setTwoFaLoading(true);
+        try {
+            const response = await api.post('/auth/2fa/setup');
+            if (response.data.success) {
+                setQrCode(response.data.qrCode);
+                setSecret(response.data.secret);
+            }
+        } catch (error) {
+            toast.error('Failed to setup 2FA');
+        } finally {
+            setTwoFaLoading(false);
+        }
+    };
+
+    const verifyTwoFactor = async () => {
+        setTwoFaLoading(true);
+        try {
+            const response = await api.post('/auth/2fa/verify', { token });
+            if (response.data.success) {
                 toast.success('2FA Enabled Successfully');
-                // Ideally update global user context here
+                setRecoveryCodes(response.data.recoveryCodes);
+                setShowBackupCodes(true);
+                setQrCode('');
+                setToken('');
+                setCurrentUser({ ...currentUser, twoFactorEnabled: true });
             }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Invalid code');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Invalid Code');
         } finally {
-            setLoading(false);
+            setTwoFaLoading(false);
         }
     };
 
-    const disable2FA = async () => {
-        if (!window.confirm('Are you sure you want to disable 2FA? This makes your account less secure.')) return;
+    const disableTwoFactor = async () => {
+        if (!window.confirm('Are you sure you want to disable 2FA? This will reduce your account security.')) return;
 
-        // We might need a code to disable it securely, but for now simple disable endpoint
-        // Actually our endpoint is defined to take a token validation for disable too?
-        // Let's check backend implementation.. 
-        // Yes: router.post('/2fa/disable' ... const verified = speakeasy.totp.verify...)
-        // So we need to ask for a code to disable it.
+        // Creating a custom prompt to get the token for disabling
+        const code = window.prompt("Enter your 2FA code to confirm disabling:");
+        if (!code) return;
 
-        const token = prompt('Please enter your 2FA code to authenticate this action:');
-        if (!token) return;
-
-        setLoading(true);
+        setTwoFaLoading(true);
         try {
-            const res = await api.post('/auth/2fa/disable', { token });
-            if (res.data.success) {
-                setIsEnabled(false);
-                setStep('initial');
+            const response = await api.post('/auth/2fa/disable', { token: code });
+            if (response.data.success) {
                 toast.success('2FA Disabled');
+                setCurrentUser({ ...currentUser, twoFactorEnabled: false });
+                setRecoveryCodes([]);
+                setShowBackupCodes(false);
             }
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to disable 2FA');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to disable 2FA');
         } finally {
-            setLoading(false);
+            setTwoFaLoading(false);
         }
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        toast.success('Copied to clipboard');
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="space-y-8">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Shield className="text-primary-indigo" />
+                Security Settings
+            </h2>
 
-            {/* Header Card */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-full ${isEnabled ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                        <Shield size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Two-Factor Authentication (2FA)</h2>
-                        <p className="text-gray-500 text-sm">
-                            Status: <span className={`font-medium ${isEnabled ? 'text-green-600' : 'text-red-500'}`}>
-                                {isEnabled ? 'Enabled' : 'Disabled'}
-                            </span>
-                        </p>
-                    </div>
+            {/* --- IP Whitelist Section --- */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Globe className="text-blue-500" size={20} />
+                        IP Whitelist
+                    </h3>
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded flex items-center gap-1">
+                        <AlertTriangle size={12} />
+                        Restrict Admin Access
+                    </span>
                 </div>
-                <div>
-                    {isEnabled ? (
-                        <button
-                            onClick={disable2FA}
-                            className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition"
-                            disabled={loading}
-                        >
-                            Disable 2FA
-                        </button>
-                    ) : (
-                        step === 'initial' && (
-                            <button
-                                onClick={startSetup}
-                                className="px-4 py-2 bg-primary-indigo text-white rounded-lg hover:bg-opacity-90 font-medium transition shadow-md"
-                                disabled={loading}
-                            >
-                                Enable 2FA
-                            </button>
-                        )
-                    )}
+
+                <p className="text-sm text-gray-500 mb-6">
+                    Only IPs listed here can access the Admin Panel.
+                    <span className="bg-gray-100 px-1 rounded ml-1">127.0.0.1</span> (Localhost) is always allowed.
+                </p>
+
+                <form onSubmit={handleAddIp} className="flex flex-col sm:flex-row gap-4 mb-8 items-end">
+                    <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
+                        <input
+                            type="text"
+                            value={newIp}
+                            onChange={(e) => setNewIp(e.target.value)}
+                            placeholder="e.g. 192.168.1.1"
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-indigo outline-none"
+                            required
+                        />
+                    </div>
+                    <div className="flex-1 w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                        <input
+                            type="text"
+                            value={label}
+                            onChange={(e) => setLabel(e.target.value)}
+                            placeholder="e.g. Office VPN"
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-indigo outline-none"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={ipLoading}
+                        className="px-6 py-2 bg-primary-indigo text-white rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2 font-medium whitespace-nowrap"
+                    >
+                        <Plus size={18} />
+                        Add IP
+                    </button>
+                </form>
+
+                <div className="overflow-x-auto border rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {allowedIps.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                        No IPs whitelisted.
+                                    </td>
+                                </tr>
+                            ) : (
+                                allowedIps.map((ip) => (
+                                    <tr key={ip._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-mono">
+                                            {ip.ip}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {ip.label || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {ip.addedBy?.name || 'Unknown'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(ip.createdAt).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => handleDeleteIp(ip._id)}
+                                                className="text-red-600 hover:text-red-900 transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {/* Setup Flow */}
-            {!isEnabled && step === 'qr' && (
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <Smartphone size={20} /> Setup Authenticator App
+            {/* --- 2FA Section --- */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <QrCode className="text-purple-500" size={20} />
+                        Two-Factor Authentication
                     </h3>
+                    {currentUser?.twoFactorEnabled ? (
+                        <span className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
+                            <Check size={12} /> Enabled
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-800 px-3 py-1 rounded-full font-medium">
+                            <Lock size={12} /> Disabled
+                        </span>
+                    )}
+                </div>
 
-                    <div className="grid md:grid-cols-2 gap-8 items-center">
-                        <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            {qrCode && <img src={qrCode} alt="2FA QR Code" className="w-48 h-48 mb-4 mix-blend-multiply" />}
-                            <p className="text-xs text-gray-500 font-mono bg-gray-200 px-2 py-1 rounded">Secret: {secret}</p>
-                        </div>
+                {!currentUser?.twoFactorEnabled ? (
+                    <div>
+                        {!qrCode ? (
+                            <div className="text-center py-6">
+                                <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+                                    Protect your account with an extra layer of security. once enabled, you will be required to enter a code from your authenticator app when you login.
+                                </p>
+                                <button
+                                    onClick={setupTwoFactor}
+                                    disabled={twoFaLoading}
+                                    className="px-6 py-2 bg-primary-indigo text-white rounded-lg hover:bg-opacity-90 transition-colors"
+                                >
+                                    Enable 2FA
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 flex flex-col md:flex-row gap-8 items-center">
+                                    <div className="bg-white p-4 rounded shadow-sm">
+                                        <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                                    </div>
+                                    <div className="flex-1 space-y-4">
+                                        <h4 className="font-semibold text-lg">Scan this QR Code</h4>
+                                        <p className="text-sm text-gray-500">
+                                            Use an authenticator app like Google Authenticator or Authy to scan the QR code.
+                                        </p>
+                                        <div>
+                                            <p className="text-xs text-gray-400 mb-1">Manual Entry Code</p>
+                                            <div className="flex items-center gap-2">
+                                                <code className="bg-gray-100 px-3 py-1 rounded text-sm font-mono text-gray-800 tracking-wider">
+                                                    {secret}
+                                                </code>
+                                                <button onClick={() => copyToClipboard(secret)} className="text-gray-400 hover:text-primary-indigo">
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div className="space-y-4">
-                            <ol className="list-decimal list-inside space-y-2 text-gray-600 text-sm">
-                                <li>Install Google Authenticator or Authy on your phone.</li>
-                                <li>Scan the QR code shown on the left.</li>
-                                <li>Enter the 6-digit code generated by the app below.</li>
-                            </ol>
-
-                            <div className="mt-4">
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Enter Verification Code</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-indigo outline-none text-lg tracking-widest text-center"
-                                        placeholder="000000"
-                                    />
-                                    <button
-                                        onClick={verifySetup}
-                                        disabled={loading || code.length < 6}
-                                        className="px-6 py-2 bg-primary-indigo text-white rounded-lg font-medium hover:bg-opacity-90 disabled:opacity-50"
-                                    >
-                                        {loading ? 'Verifying...' : 'Verify'}
-                                    </button>
+                                <div className="max-w-xs mx-auto">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Enter Authentication Code
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={token}
+                                            onChange={(e) => setToken(e.target.value)}
+                                            placeholder="000 000"
+                                            className="block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-indigo text-center tracking-widest text-lg"
+                                        />
+                                        <button
+                                            onClick={verifyTwoFactor}
+                                            disabled={twoFaLoading || token.length < 6}
+                                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                        >
+                                            Verify
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                    </div>
+                ) : (
+                    <div>
+                        <div className="p-6 bg-green-50 rounded-lg border border-green-100 mb-6 text-center">
+                            <Shield className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                            <h4 className="text-lg font-semibold text-green-900 mb-2">Two-Factor Authentication is Active</h4>
+                            <p className="text-sm text-green-700 mb-6">
+                                Your account is secure. You will be asked for a code when you login.
+                            </p>
+
+                            <button
+                                onClick={disableTwoFactor}
+                                className="text-red-600 hover:text-red-700 text-sm font-medium underline"
+                            >
+                                Disable 2FA
+                            </button>
                         </div>
-                    </div>
-                </div>
-            )}
 
-            {/* Success / Recovery Codes */}
-            {step === 'success' && (
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-green-100">
-                    <div className="flex items-center gap-3 mb-6 text-green-700">
-                        <CheckCircle size={28} />
-                        <h3 className="text-xl font-bold">2FA is now enabled!</h3>
-                    </div>
-
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-                        <div className="flex items-start">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
-                            <div>
-                                <h4 className="text-sm font-bold text-yellow-800">Save your backup codes</h4>
-                                <p className="text-sm text-yellow-700 mt-1">
-                                    If you lose access to your authenticator app, you can use these codes to log in.
-                                    Each code can only be used once. <strong>Save them in a secure place.</strong>
+                        {showBackupCodes && (
+                            <div className="mb-6">
+                                <h4 className="font-medium mb-3 flex items-center gap-2">
+                                    <Lock size={16} className="text-gray-500" />
+                                    Backup Recovery Codes
+                                </h4>
+                                <div className="bg-gray-800 text-gray-200 p-4 rounded-lg font-mono text-sm grid grid-cols-2 gap-2">
+                                    {recoveryCodes.map((code, index) => (
+                                        <div key={index} className="bg-gray-700 px-2 py-1 rounded text-center">
+                                            {code}
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-red-500 mt-2">
+                                    * Save these codes in a safe place. They will not be shown again.
                                 </p>
                             </div>
-                        </div>
+                        )}
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 font-mono text-sm bg-gray-50 p-6 rounded-lg border border-gray-200">
-                        {backupCodes.map((code, index) => (
-                            <div key={index} className="bg-white p-2 text-center rounded border border-gray-300">
-                                {code}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mt-6 text-right">
-                        <button
-                            onClick={() => { setStep('initial'); setBackupCodes([]); }}
-                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
-                        >
-                            I have saved these codes
-                        </button>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

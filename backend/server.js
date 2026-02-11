@@ -138,11 +138,16 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/payment', require('./routes/payment'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/admin/monitoring', require('./routes/monitoring'));
-app.use('/api/admin/logs', require('./routes/logs')); // System logs
-app.use('/api/audit-logs', require('./routes/auditLogs')); // Audit Logs via dedicated route
-app.use('/api/analytics', require('./routes/analytics'));
+// Admin Routes (Protected + IP Whitelisted)
+const checkIp = require('./middleware/checkIpWhitelist');
+// Apply IP Check only to admin, monitoring, and audit logs
+app.use('/api/admin', checkIp, require('./routes/admin'));
+app.use('/api/admin/allowed-ips', checkIp, require('./routes/ipWhitelist')); // Manage IPs
+app.use('/api/admin/monitoring', checkIp, require('./routes/monitoring'));
+app.use('/api/admin/logs', checkIp, require('./routes/logs')); // System logs
+app.use('/api/audit-logs', checkIp, require('./routes/auditLogs')); // Audit Logs via dedicated route
+// Analytics might be user facing or admin only? Usually admin.
+app.use('/api/analytics', checkIp, require('./routes/analytics'));
 
 const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
