@@ -11,6 +11,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add CSRF Token
+    const csrfToken = getCookie('XSRF-TOKEN') || localStorage.getItem('csrfToken');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+
     return config;
   },
   (error) => {
@@ -31,3 +38,19 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+export const fetchCsrfToken = async () => {
+  try {
+    const { data } = await api.get('/csrf-token');
+    localStorage.setItem('csrfToken', data.csrfToken);
+    api.defaults.headers.common['X-CSRF-Token'] = data.csrfToken;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token', error);
+  }
+};

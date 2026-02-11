@@ -16,6 +16,7 @@ import PerformanceDashboard from './components/PerformanceDashboard';
 import './App.css';
 
 import { initGA, logPageView } from './utils/analytics';
+import { fetchCsrfToken } from './services/api';
 
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
@@ -25,6 +26,8 @@ const PageTracker = () => {
   React.useEffect(() => {
     initGA();
     logPageView();
+    // Fetch CSRF token on initial load
+    fetchCsrfToken();
   }, [location]);
 
   return null;

@@ -143,6 +143,45 @@ app.use('/api/admin/monitoring', require('./routes/monitoring'));
 app.use('/api/admin/logs', require('./routes/logs'));
 app.use('/api/analytics', require('./routes/analytics'));
 
+const cookieParser = require('cookie-parser');
+const csrf = require('csurf');
+
+app.use(cookieParser());
+
+// CSRF Protection
+// We enable CSRF protection for all routes except webhooks which are handled separately (and typically use signatures)
+// However, since webhooks are typically POST/PUT, we need to ensure they are excluded or handled before this middleware if they don't have the token.
+// The webhooks route is already mounted BEFORE express.json/urlencoded and other body parsers, and csurf usually requires body-parser or cookie-parser.
+// Let's apply CSRF after body parsing.
+
+const csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict'
+  }
+});
+
+// Apply CSRF to all standard API routes EXCEPT webhooks (which are already defined above this block)
+// Note: Webhooks route is defined at line 84, so it won't be affected by this middleware added here.
+app.use(csrfProtection);
+
+// CSRF Token Endpoint
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+// Handle CSRF Errors
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Invalid CSRF token'
+    });
+  }
+  next(err);
+});
+
 app.get("/debug-sentry", function mainHandler(req, res) {
   throw new Error("My first Sentry error!");
 });
