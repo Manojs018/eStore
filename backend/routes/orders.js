@@ -415,6 +415,27 @@ router.get('/:id', auth, async (req, res) => {
 // @desc    Get orders (User specific or all for Admin)
 // @route   GET /api/orders
 // @access  Private
+/**
+ * @swagger
+ * /api/orders:
+ *   get:
+ *     summary: Get orders (User specific or all for Admin)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of orders
+ */
 router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -459,6 +480,44 @@ router.get('/', auth, async (req, res) => {
 // @desc    Update order status (Admin only)
 // @route   PUT /api/orders/:id
 // @access  Private/Admin
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   put:
+ *     summary: Update order status (Admin)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderStatus
+ *             properties:
+ *               orderStatus:
+ *                 type: string
+ *                 enum: [processing, shipped, delivered, cancelled]
+ *               trackingNumber:
+ *                 type: string
+ *               carrier:
+ *                 type: string
+ *               trackingUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order status updated
+ *       404:
+ *         description: Order not found
+ */
 router.put('/:id', auth, admin, async (req, res) => {
   try {
     const { orderStatus } = req.body;

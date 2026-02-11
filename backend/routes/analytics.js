@@ -4,6 +4,43 @@ const AnalyticsEvent = require('../models/AnalyticsEvent');
 const { auth: protect, admin } = require('../middleware/auth');
 
 // Track Event
+/**
+ * @swagger
+ * tags:
+ *   name: Analytics
+ *   description: User analytics and tracking
+ */
+
+/**
+ * @swagger
+ * /api/analytics/event:
+ *   post:
+ *     summary: Track a user event
+ *     tags: [Analytics]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - eventType
+ *             properties:
+ *               eventType:
+ *                 type: string
+ *                 example: pageview
+ *               guestId:
+ *                 type: string
+ *               url:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Event tracked
+ */
 router.post('/event', async (req, res) => {
     try {
         const { eventType, guestId, url, metadata } = req.body;
@@ -38,6 +75,33 @@ router.post('/event', async (req, res) => {
 });
 
 // Admin Dashboard Stats
+/**
+ * @swagger
+ * /api/analytics/dashboard:
+ *   get:
+ *     summary: Get analytics dashboard data
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Dashboard data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin only
+ */
 router.get('/dashboard', protect, admin, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;

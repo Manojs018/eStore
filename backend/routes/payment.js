@@ -4,9 +4,44 @@ const { auth } = require('../middleware/auth');
 // Use test key if not provided for finding bugs/testing flow (won't actually process)
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+/**
+ * @swagger
+ * tags:
+ *   name: Payment
+ *   description: Payment processing
+ */
+
 // @route   POST /api/payment/create-payment-intent
 // @desc    Create payment intent
 // @access  Private
+/**
+ * @swagger
+ * /api/payment/create-payment-intent:
+ *   post:
+ *     summary: Create Stripe payment intent
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - shippingInfo
+ *             properties:
+ *               amount:
+ *                 type: integer
+ *               shippingInfo:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Payment intent client secret
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/create-payment-intent', auth, async (req, res) => {
     try {
         const { amount, shippingInfo } = req.body;

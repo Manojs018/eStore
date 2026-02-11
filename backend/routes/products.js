@@ -93,6 +93,49 @@ router.get('/', searchLimiter, async (req, res) => {
 // @desc    Filter products with advanced options
 // @route   GET /api/products/filter
 // @access  Public
+/**
+ * @swagger
+ * /api/products/filter:
+ *   get:
+ *     summary: Filter and search products
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Product category
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: number
+ *         description: Minimum average rating
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [price-asc, price-desc, rating]
+ *         description: Sort order
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Filtered product list with facets
+ */
 router.get('/filter', searchLimiter, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;

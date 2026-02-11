@@ -2,6 +2,42 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *         - password
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Auto-generated ID
+ *         name:
+ *           type: string
+ *           description: User name
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: User email
+ *         role:
+ *           type: string
+ *           enum: [user, admin]
+ *           description: User role
+ *         isActive:
+ *           type: boolean
+ *           description: Account status
+ *         isEmailVerified:
+ *           type: boolean
+ *           description: Email verification status
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: Registration date
+ */
 const userSchema = new mongoose.Schema({
   name: {
     type: String,

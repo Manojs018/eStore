@@ -310,6 +310,29 @@ router.post('/logout', require('../middleware/auth').auth, async (req, res) => {
 // @desc    Refresh Token
 // @route   POST /api/auth/refresh
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New tokens generated
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -436,6 +459,28 @@ router.get('/users', require('../middleware/auth').auth, require('../middleware/
 // @desc    Forgot Password
 // @route   POST /api/auth/forgot-password
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset email sent
+ */
 router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -495,6 +540,36 @@ router.post('/forgot-password', async (req, res) => {
 // @desc    Reset Password
 // @route   PUT /api/auth/reset-password/:resettoken
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/reset-password/{resettoken}:
+ *   put:
+ *     summary: Reset password using token
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: resettoken
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password updated and logged in
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.put('/reset-password/:resettoken', async (req, res) => {
   try {
     // Get hashed token
@@ -545,6 +620,24 @@ router.put('/reset-password/:resettoken', async (req, res) => {
 // @desc    Verify Email
 // @route   GET /api/auth/verifyemail/:token
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/verifyemail/{token}:
+ *   get:
+ *     summary: Verify email address
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email verified and logged in
+ *       400:
+ *         description: Invalid tokens
+ */
 router.get('/verifyemail/:token', async (req, res) => {
   try {
     const emailVerificationToken = crypto
@@ -611,6 +704,31 @@ router.get('/verifyemail/:token', async (req, res) => {
 // @desc    Resend Verification Email
 // @route   POST /api/auth/resend-verification
 // @access  Public
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: Resend email verification link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification email sent
+ *       400:
+ *         description: Email already verified
+ *       404:
+ *         description: User not found
+ */
 router.post('/resend-verification', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
 ], async (req, res) => {
