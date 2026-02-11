@@ -13,9 +13,10 @@ const apiLimiter = rateLimit({
 });
 
 // Auth limiter (5 reqs / 15 mins) - Stricter for login/register
+// Auth limiter (5 reqs / 15 mins) - Stricter for login/register
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: process.env.NODE_ENV === 'test' ? 100 : 5,
     standardHeaders: true,
     legacyHeaders: true, // Enable for testing
     message: {

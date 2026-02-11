@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
-import { LayoutDashboard, Package, ShoppingCart, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, FileText } from 'lucide-react';
 import AdminStats from '../components/admin/AdminStats';
 import AdminProducts from '../components/admin/AdminProducts';
 import AdminOrders from '../components/admin/AdminOrders';
 import AdminUsers from '../components/admin/AdminUsers';
+import AdminLogs from '../components/admin/AdminLogs';
 
 const Admin = () => {
   const { user, logout } = useAuth();
@@ -50,6 +51,12 @@ const Admin = () => {
             <AdminUsers />
           </motion.div>
         );
+      case 'logs':
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <AdminLogs />
+          </motion.div>
+        );
       default:
         return <AdminStats />;
     }
@@ -83,6 +90,7 @@ const Admin = () => {
           <SidebarItem id="products" label="Products" icon={Package} />
           <SidebarItem id="orders" label="Orders" icon={ShoppingCart} />
           <SidebarItem id="users" label="Users" icon={Users} />
+          <SidebarItem id="logs" label="System Logs" icon={FileText} />
         </nav>
 
         <div className="mt-auto pt-10">
@@ -102,6 +110,7 @@ const Admin = () => {
         <button onClick={() => setActiveTab('products')} className={`p-2 rounded ${activeTab === 'products' ? 'bg-primary text-white' : 'text-gray-600'}`}>Products</button>
         <button onClick={() => setActiveTab('orders')} className={`p-2 rounded ${activeTab === 'orders' ? 'bg-primary text-white' : 'text-gray-600'}`}>Orders</button>
         <button onClick={() => setActiveTab('users')} className={`p-2 rounded ${activeTab === 'users' ? 'bg-primary text-white' : 'text-gray-600'}`}>Users</button>
+        <button onClick={() => setActiveTab('logs')} className={`p-2 rounded ${activeTab === 'logs' ? 'bg-primary text-white' : 'text-gray-600'}`}>Logs</button>
       </div>
 
       {/* Main Content */}

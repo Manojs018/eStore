@@ -7,17 +7,24 @@ const requestLogger = (req, res, next) => {
     // Log response on finish
     res.on('finish', () => {
         const duration = Date.now() - start;
-        const reqIdPart = req.id ? `[Req: ${req.id}] ` : '';
-        const message = `${reqIdPart}${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
+        const logData = {
+            message: 'Incoming Request',
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration,
+            requestId: req.id
+        };
 
         if (res.statusCode >= 500) {
-            logger.error(message);
+            logger.error({ ...logData, message: 'Request Error' });
         } else if (res.statusCode >= 400) {
-            logger.warn(message);
+            logger.warn({ ...logData, message: 'Request Warning' });
         } else {
-            logger.info(message);
+            logger.info(logData);
         }
     });
+
 
     next();
 };
