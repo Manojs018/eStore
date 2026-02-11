@@ -62,4 +62,6 @@ productSchema.index({ name: 1 });
 productSchema.index({ price: 1 }); // Often filtered/sorted
 productSchema.index({ averageRating: -1 }); // Often sorted
 
+productSchema.plugin(require('../plugins/performanceMonitor'));
+
 module.exports = mongoose.model('Product', productSchema);

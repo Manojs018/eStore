@@ -2,23 +2,18 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
-import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, FileText } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, LogOut, FileText, Activity, TrendingUp } from 'lucide-react';
 import AdminStats from '../components/admin/AdminStats';
 import AdminProducts from '../components/admin/AdminProducts';
 import AdminOrders from '../components/admin/AdminOrders';
 import AdminUsers from '../components/admin/AdminUsers';
 import AdminLogs from '../components/admin/AdminLogs';
+import AdminMonitoring from '../components/admin/AdminMonitoring';
+import UserAnalytics from '../components/admin/UserAnalytics';
 
 const Admin = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  // Check if user is admin
-  // For demo/dev purposes, if backend is down, we might not have a user.
-  // In a real scenario, this check is crucial.
-  // if (!user || user.role !== 'admin') {
-  //   return <Navigate to="/" />;
-  // }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -57,6 +52,18 @@ const Admin = () => {
             <AdminLogs />
           </motion.div>
         );
+      case 'monitoring':
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <AdminMonitoring />
+          </motion.div>
+        );
+      case 'analytics':
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <UserAnalytics />
+          </motion.div>
+        );
       default:
         return <AdminStats />;
     }
@@ -91,6 +98,8 @@ const Admin = () => {
           <SidebarItem id="orders" label="Orders" icon={ShoppingCart} />
           <SidebarItem id="users" label="Users" icon={Users} />
           <SidebarItem id="logs" label="System Logs" icon={FileText} />
+          <SidebarItem id="monitoring" label="Monitoring" icon={Activity} />
+          <SidebarItem id="analytics" label="Analytics" icon={TrendingUp} />
         </nav>
 
         <div className="mt-auto pt-10">
@@ -111,6 +120,8 @@ const Admin = () => {
         <button onClick={() => setActiveTab('orders')} className={`p-2 rounded ${activeTab === 'orders' ? 'bg-primary text-white' : 'text-gray-600'}`}>Orders</button>
         <button onClick={() => setActiveTab('users')} className={`p-2 rounded ${activeTab === 'users' ? 'bg-primary text-white' : 'text-gray-600'}`}>Users</button>
         <button onClick={() => setActiveTab('logs')} className={`p-2 rounded ${activeTab === 'logs' ? 'bg-primary text-white' : 'text-gray-600'}`}>Logs</button>
+        <button onClick={() => setActiveTab('monitoring')} className={`p-2 rounded ${activeTab === 'monitoring' ? 'bg-primary text-white' : 'text-gray-600'}`}>Monitor</button>
+        <button onClick={() => setActiveTab('analytics')} className={`p-2 rounded ${activeTab === 'analytics' ? 'bg-primary text-white' : 'text-gray-600'}`}>Analytics</button>
       </div>
 
       {/* Main Content */}

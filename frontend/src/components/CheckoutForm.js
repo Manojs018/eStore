@@ -5,7 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { logPurchase } from '../utils/analytics';
+import { logPurchase, logBeginCheckout } from '../utils/analytics';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_...');
@@ -13,9 +13,14 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ||
 const CheckoutFormContent = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, clearCart, getCartItemsCount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  // ... existing state ...
+
+  React.useEffect(() => {
+    logBeginCheckout(getCartTotal(), getCartItemsCount());
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [shippingInfo, setShippingInfo] = useState({

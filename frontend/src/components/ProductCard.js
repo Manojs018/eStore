@@ -5,6 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Heart } from 'lucide-react';
 import OptimizedImage from './OptimizedImage';
+import { logAddToCart } from '../utils/analytics';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
@@ -13,6 +14,7 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    logAddToCart(product); // Add logging
     addToCart(product);
   };
 

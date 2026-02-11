@@ -107,4 +107,6 @@ userSchema.methods.toJSON = function () {
   return userObject;
 };
 
+userSchema.plugin(require('../plugins/performanceMonitor'));
+
 module.exports = mongoose.model('User', userSchema);

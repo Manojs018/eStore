@@ -100,4 +100,6 @@ orderSchema.pre('save', function (next) {
   next();
 });
 
+orderSchema.plugin(require('../plugins/performanceMonitor'));
+
 module.exports = mongoose.model('Order', orderSchema);

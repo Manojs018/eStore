@@ -106,7 +106,9 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/admin', require('./routes/admin'));
-app.use('/api/admin/logs', require('./routes/logs')); // Added logs route
+app.use('/api/admin/monitoring', require('./routes/monitoring'));
+app.use('/api/admin/logs', require('./routes/logs'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 app.get("/debug-sentry", function mainHandler(req, res) {
   throw new Error("My first Sentry error!");
@@ -125,6 +127,8 @@ Sentry.setupExpressErrorHandler(app);
 
 // Global error handler
 app.use(errorHandler);
+
+const startMonitoring = require('./jobs/monitor');
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -146,6 +150,8 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+
+  startMonitoring();
 
   app.listen(PORT, () => {
     logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
