@@ -79,7 +79,19 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   emailVerificationToken: String,
-  emailVerificationExpire: Date
+  emailVerificationExpire: Date,
+  twoFactorSecret: {
+    type: String,
+    select: false
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorRecoveryCodes: {
+    type: [String],
+    select: false
+  }
 }, {
   timestamps: true
 });

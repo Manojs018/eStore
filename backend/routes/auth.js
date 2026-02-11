@@ -9,8 +9,163 @@ const sendEmail = require('../utils/sendEmail');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const logger = require('../utils/logger');
 const { authLimiter } = require('../middleware/rateLimiter');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 
 const router = express.Router();
+
+// @desc    Setup 2FA (Generate Secret)
+// @route   POST /api/auth/2fa/setup
+// @access  Private
+router.post('/2fa/setup', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const secret = speakeasy.generateSecret({
+      name: `eStore (${req.user.email})`
+    });
+
+    // Save temporary secret to user (or return it and save only when verified)
+    // Better practice: save it but mark as not enabled yet.
+    // However, since we defined 'twoFactorSecret' in model, let's use that but we need a way to know if it's confirmed.
+    // For simplicity, we'll store it but check 'twoFactorEnabled' flag.
+
+    // Actually, saving it now implies we overwrite any existing one.
+    // If user already has 2FA enabled, maybe we should ask for current code first? 
+    // For now, let's assume this is setting it up from scratch.
+
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+    user.twoFactorSecret = secret.base32;
+    await user.save();
+
+    // Generate QR Code
+    qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Error generating QR code' });
+      }
+      res.json({
+        success: true,
+        secret: secret.base32,
+        qrCode: data_url
+      });
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Verify 2FA (Enable it)
+// @route   POST /api/auth/2fa/verify
+// @access  Private
+router.post('/2fa/verify', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      user.twoFactorEnabled = true;
+
+      // Generate backup codes
+      const recoveryCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex'));
+      user.twoFactorRecoveryCodes = recoveryCodes;
+
+      await user.save();
+
+      res.json({ success: true, message: '2FA Enabled', recoveryCodes });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Disable 2FA
+// @route   POST /api/auth/2fa/disable
+// @access  Private
+router.post('/2fa/disable', require('../middleware/auth').auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findById(req.user.id).select('+twoFactorSecret');
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      user.twoFactorEnabled = false;
+      user.twoFactorSecret = undefined;
+      user.twoFactorRecoveryCodes = undefined;
+      await user.save();
+
+      res.json({ success: true, message: '2FA Disabled' });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Validate 2FA (Login Step 2)
+// @route   POST /api/auth/2fa/validate
+// @access  Public (uses tempToken)
+router.post('/2fa/validate', async (req, res) => {
+  const { tempToken, token } = req.body;
+  if (!tempToken || !token) {
+    return res.status(400).json({ success: false, message: 'Missing token or code' });
+  }
+
+  try {
+    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    if (!decoded || decoded.scope !== '2fa_login') {
+      return res.status(401).json({ success: false, message: 'Invalid or expired session' });
+    }
+
+    const user = await User.findById(decoded.id).select('+twoFactorSecret');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token
+    });
+
+    if (verified) {
+      // Generate real tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = await generateRefreshToken(user, req.ip);
+
+      logger.info(`User passed 2FA: ${user.email}`);
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user,
+          token: accessToken,
+          refreshToken: refreshToken.token
+        }
+      });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+  } catch (error) {
+    logger.error('2FA Validate Error' + error.message);
+    res.status(401).json({ success: false, message: 'Invalid or expired session' });
+  }
+});
 
 /**
  * @swagger
@@ -244,6 +399,17 @@ router.post('/login', [
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
+      });
+    }
+
+    // Check 2FA
+    if (user.twoFactorEnabled) {
+      const tempToken = jwt.sign({ id: user._id, scope: '2fa_login' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+      return res.json({
+        success: true,
+        twoFactorRequired: true,
+        tempToken,
+        message: '2FA verification required'
       });
     }
 

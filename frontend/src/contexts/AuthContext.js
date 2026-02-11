@@ -40,16 +40,43 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
 
-      if (response && response.data && response.data.success) {
-        const { token, user } = response.data.data || {};
-        localStorage.setItem('token', token);
-        // Header is handled by interceptor
-        setUser(user);
-        toast.success('Login successful!');
-        return { success: true };
+      if (response && response.data) {
+        if (response.data.twoFactorRequired) {
+          return {
+            success: true,
+            twoFactorRequired: true,
+            tempToken: response.data.tempToken
+          };
+        }
+
+        if (response.data.success) {
+          const { token, user } = response.data.data || {};
+          localStorage.setItem('token', token);
+          // Header is handled by interceptor
+          setUser(user);
+          toast.success('Login successful!');
+          return { success: true };
+        }
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const verifyTwoFactor = async (tempToken, token) => {
+    try {
+      const response = await api.post('/auth/2fa/validate', { tempToken, token });
+      if (response.data.success) {
+        const { token: accessToken, user } = response.data.data;
+        localStorage.setItem('token', accessToken);
+        setUser(user);
+        toast.success('2FA Verified! Login successful.');
+        return { success: true };
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Verification failed';
       toast.error(message);
       return { success: false, error: message };
     }
@@ -81,6 +108,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     login,
+    verifyTwoFactor,
     register,
     logout,
     loading,
