@@ -48,7 +48,25 @@ const app = express();
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Security Middleware
+// Security Middleware
 app.use(helmet());
+
+// Enforce HTTPS in Production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+
+  // HSTS (Strict-Transport-Security)
+  app.use(helmet.hsts({
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }));
+}
 app.use(requestId);
 app.use(requestLogger);
 
